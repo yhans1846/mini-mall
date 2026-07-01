@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  name            String
+  password        String                        // bcrypt 加密存储
+  role            String    @default("USER")    // USER | ADMIN
+  membershipLevel Int       @default(0)          // 心悦等级 0|1|2|3
+  totalSpent      Float     @default(0)         // 累计消费金额（已支付订单）
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  cartItems       CartItem[]
+  orders          Order[]
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  slug      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id          Int         @id @default(autoincrement())
+  name        String
+  description String      @default("")
+  price       Float
+  stock       Int         @default(0)
+  imageUrl    String      @default("")
+  isPublished Boolean     @default(true)
+  categoryId  Int
+  category    Category    @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  quantity  Int      @default(1)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
+}
+
+model Order {
+  id             Int         @id @default(autoincrement())
+  userId         Int
+  user           User        @relation(fields: [userId], references: [id])
+  status         String      @default("PENDING")  // PENDING | PAID | SHIPPED | COMPLETED | CANCELLED
+  originalAmount Float       @default(0)          // 折扣前原价
+  discountRate   Float       @default(1.0)        // 折扣率快照
+  totalAmount    Float                             // 折后实付金额
+  address        String      @default("")
+  phone          String      @default("")
+  note           String      @default("")
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  items          OrderItem[]
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float   // 下单时的商品单价（快照）
+}
