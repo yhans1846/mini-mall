@@ -33,6 +33,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
+          avatar: user.avatar,
         };
       },
     }),
@@ -44,10 +45,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.avatar = user.avatar;
+      }
+      // 头像更新后刷新 session
+      if (trigger === "update") {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: parseInt(token.id as string, 10) },
+          select: { name: true, avatar: true },
+        });
+        if (dbUser) {
+          token.name = dbUser.name;
+          token.avatar = dbUser.avatar;
+        }
       }
       return token;
     },
@@ -55,6 +68,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        session.user.avatar = token.avatar as string;
       }
       return session;
     },

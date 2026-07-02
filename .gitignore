@@ -51,6 +51,10 @@ next-env.d.ts
 # Prisma generated
 node_modules/.prisma/
 
+# uploads
+/public/uploads/avatars/*
+!/public/uploads/avatars/.gitkeep
+
 # system
 Thumbs.db
 

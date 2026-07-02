@@ -179,7 +179,22 @@ async function main() {
     { productId: products[12].id, quantity: 5, price: 79 },
   ], "COMPLETED", 0.90, 1696.50, "广东省深圳市南山区xxx路4号", "13800000004");
 
-  console.log("✅ 已创建订单测试数据");
+  // ===== 创建收货地址 =====
+  const addressData = [
+    { userId: normalUser.id, name: "张三", phone: "13800000001", province: "北京市", city: "北京市", district: "朝阳区", detail: "建国路88号XX大厦12层", isDefault: true },
+    { userId: vip1User.id, name: "李四", phone: "13800000002", province: "北京市", city: "北京市", district: "海淀区", detail: "中关村大街1号XX科技园", isDefault: true },
+    { userId: vip1User.id, name: "李四公司", phone: "13800000002", province: "北京市", city: "北京市", district: "朝阳区", detail: "望京SOHO T3 15层", isDefault: false },
+    { userId: vip2User.id, name: "王五", phone: "13800000003", province: "上海市", city: "上海市", district: "浦东新区", detail: "陆家嘴金融中心20层", isDefault: true },
+    { userId: vip3User.id, name: "赵六", phone: "13800000004", province: "广东省", city: "深圳市", district: "南山区", detail: "科技园南区XX大厦", isDefault: true },
+  ];
+
+  await Promise.all(
+    addressData.map((a) =>
+      prisma.address.create({ data: a })
+    )
+  );
+  console.log("✅ 已创建收货地址测试数据");
+
   console.log("🎉 种子数据填充完毕！");
 }
 

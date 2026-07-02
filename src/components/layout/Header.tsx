@@ -113,9 +113,16 @@ export default function Header() {
         <div className="hidden items-center gap-3 md:flex">
           {session ? (
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">
-                {session.user?.name}
-              </span>
+              <Link href="/member" className="flex items-center gap-2 rounded-md px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">
+                {session.user?.avatar ? (
+                  <img src={session.user.avatar} alt="" className="h-7 w-7 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-600">
+                    {(session.user?.name || "U").charAt(0)}
+                  </div>
+                )}
+                <span>{session.user?.name}</span>
+              </Link>
               <button
                 onClick={() =>
                   signOut({ redirectTo: "/" }).catch(() => {
@@ -209,9 +216,16 @@ export default function Header() {
             <hr className="my-2 border-gray-200" />
             {session ? (
               <div className="flex flex-col gap-2 px-3 py-2">
-                <span className="text-sm text-gray-600">
-                  {session.user?.name}
-                </span>
+                <Link href="/member" onClick={closeMenu} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
+                  {session.user?.avatar ? (
+                    <img src={session.user.avatar} alt="" className="h-6 w-6 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-600">
+                      {(session.user?.name || "U").charAt(0)}
+                    </div>
+                  )}
+                  <span>{session.user?.name}</span>
+                </Link>
                 <button
                   onClick={() =>
                     signOut({ redirectTo: "/" }).catch(() => {

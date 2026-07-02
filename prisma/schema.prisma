@@ -13,12 +13,29 @@ model User {
   name            String
   password        String                        // bcrypt 加密存储
   role            String    @default("USER")    // USER | ADMIN
+  avatar          String    @default("")         // 头像 URL
   membershipLevel Int       @default(0)          // 心悦等级 0|1|2|3
   totalSpent      Float     @default(0)         // 累计消费金额（已支付订单）
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   cartItems       CartItem[]
   orders          Order[]
+  addresses       Address[]
+}
+
+model Address {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String                             // 收货人姓名
+  phone     String
+  province  String                             // 省
+  city     String                             // 市
+  district  String                             // 区
+  detail    String                             // 详细地址
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Category {
