@@ -1,7 +1,9 @@
 // src/components/product/ProductCard.tsx
 "use client";
 
+import { useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Product } from "@/types";
 
 /** 格式化价格，保留两位小数 */
@@ -14,6 +16,48 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const router = useRouter();
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
+
+  const handleAddToCart = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault(); // 阻止 Link 导航
+      e.stopPropagation();
+
+      if (adding) return;
+
+      setAdding(true);
+      try {
+        const res = await fetch("/api/cart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ productId: product.id, quantity: 1 }),
+        });
+
+        if (res.status === 401) {
+          router.push("/auth/login");
+          return;
+        }
+
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.error || "添加失败");
+          return;
+        }
+
+        // 成功反馈
+        setAdded(true);
+        setTimeout(() => setAdded(false), 1500);
+      } catch {
+        alert("添加失败，请重试");
+      } finally {
+        setAdding(false);
+      }
+    },
+    [product.id, adding, router]
+  );
+
   return (
     <Link
       href={`/products/${product.id}`}
@@ -26,7 +70,6 @@ export default function ProductCard({ product }: ProductCardProps) {
           alt={product.name}
           className="h-full w-full object-cover transition-transform group-hover:scale-105"
           onError={(e) => {
-            // 图片加载失败时显示占位文字
             const target = e.currentTarget;
             target.style.display = "none";
             const parent = target.parentElement;
@@ -57,10 +100,18 @@ export default function ProductCard({ product }: ProductCardProps) {
           {formatPrice(product.price)}
         </p>
 
-        {/* 加入购物车按钮（占位，Step 6 实现功能） */}
-        <div className="mt-2 rounded-md bg-blue-600 py-1.5 text-center text-sm text-white transition-colors hover:bg-blue-700">
-          加入购物车
-        </div>
+        {/* 加入购物车按钮 */}
+        <button
+          onClick={handleAddToCart}
+          disabled={adding}
+          className={`mt-2 w-full rounded-md py-1.5 text-center text-sm text-white transition-colors ${
+            added
+              ? "bg-green-500"
+              : "bg-blue-600 hover:bg-blue-700"
+          } disabled:opacity-70`}
+        >
+          {added ? "已加入 ✓" : adding ? "添加中..." : "加入购物车"}
+        </button>
       </div>
     </Link>
   );
