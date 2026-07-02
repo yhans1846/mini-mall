@@ -47,6 +47,7 @@ export default function RegisterPage() {
       }
 
       // 注册成功，跳转到登录页
+      setLoading(false);
       router.push("/auth/login?registered=true");
     } catch {
       setError("网络错误，请稍后重试");
