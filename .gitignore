@@ -60,3 +60,6 @@ Thumbs.db
 
 # brainstorm prototypes
 .superpowers/
+
+# worktree
+.claude/worktrees/
