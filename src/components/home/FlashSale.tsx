@@ -42,19 +42,19 @@ export default function FlashSale({ products }: FlashSaleProps) {
           <Link
             key={product.id}
             href={`/products/${product.id}`}
-            className="group relative overflow-hidden rounded-xl bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+            className="group relative flex items-center gap-3 overflow-hidden rounded-xl bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
           >
             {/* 角标 */}
-            <span className="absolute left-0 top-0 rounded-br-lg bg-red-500 px-2 py-0.5 text-xs font-medium text-white">
+            <span className="absolute left-0 top-0 rounded-br-lg bg-red-500 px-2 py-0.5 text-xs font-medium text-white z-10">
               秒杀
             </span>
 
-            {/* 商品信息 */}
-            <div className="mt-5 min-w-0">
-              <p className="truncate text-sm font-medium text-gray-800 group-hover:text-red-500 transition-colors">
+            {/* 商品信息（左） */}
+            <div className="min-w-0 flex-1 pl-1">
+              <p className="text-sm font-medium text-gray-800 group-hover:text-red-500 transition-colors leading-tight">
                 {product.name}
               </p>
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-2 flex items-center gap-2">
                 <span className="text-base font-bold text-red-500">
                   ¥{product.price.toFixed(2)}
                 </span>
@@ -64,6 +64,21 @@ export default function FlashSale({ products }: FlashSaleProps) {
                   </span>
                 )}
               </div>
+            </div>
+
+            {/* 商品图（右） */}
+            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+              {product.imageUrl ? (
+                <img
+                  src={product.imageUrl}
+                  alt={product.name}
+                  className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center text-gray-300 text-xs">
+                  暂无图片
+                </div>
+              )}
             </div>
           </Link>
         ))}

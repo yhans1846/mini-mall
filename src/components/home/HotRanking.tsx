@@ -68,6 +68,21 @@ export default function HotRanking({ products }: HotRankingProps) {
                   ¥{product.price.toFixed(2)}
                 </p>
               </div>
+
+              {/* 商品图（右） */}
+              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                {product.imageUrl ? (
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-gray-300 text-xs">
+                    暂无图片
+                  </div>
+                )}
+              </div>
             </Link>
           );
         })}
