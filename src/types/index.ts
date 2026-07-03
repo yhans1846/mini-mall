@@ -14,6 +14,8 @@ export interface Product {
   stock: number;
   imageUrl: string;
   isPublished: boolean;
+  isFlashSale: boolean;
+  originalPrice: number | null;
   categoryId: number;
   category: Category;
   createdAt: string;

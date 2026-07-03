@@ -111,7 +111,12 @@ export default function ProductDetailPage() {
 
       <div className="grid gap-8 md:grid-cols-2">
         {/* 商品大图 */}
-        <div className="overflow-hidden rounded-lg bg-gray-100">
+        <div className="relative overflow-hidden rounded-lg bg-gray-100">
+          {product.isFlashSale && (
+            <span className="absolute left-0 top-0 z-10 rounded-br-lg bg-red-500 px-3 py-1 text-sm font-medium text-white">
+              秒杀中
+            </span>
+          )}
           {product.imageUrl ? (
             <img
               src={product.imageUrl}
@@ -136,9 +141,16 @@ export default function ProductDetailPage() {
           <h1 className="mt-3 text-2xl font-bold text-gray-900">{product.name}</h1>
 
           {/* 价格 */}
-          <p className="mt-4 text-3xl font-bold text-red-500">
-            {formatPrice(product.price)}
-          </p>
+          <div className="mt-4 flex items-baseline gap-3">
+            <span className="text-3xl font-bold text-red-500">
+              {formatPrice(product.price)}
+            </span>
+            {product.isFlashSale && product.originalPrice && (
+              <span className="text-lg text-gray-400 line-through">
+                {formatPrice(product.originalPrice)}
+              </span>
+            )}
+          </div>
 
           {/* 库存信息 */}
           <p className="mt-2 text-sm text-gray-500">
