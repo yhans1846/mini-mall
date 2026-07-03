@@ -3,13 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { Category } from "@/types";
-
-interface SearchBarProps {
-  categories: Category[];
-}
-
-export default function SearchBar({ categories }: SearchBarProps) {
+export default function SearchBar() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -31,24 +25,9 @@ export default function SearchBar({ categories }: SearchBarProps) {
         } else {
           params.delete("search");
         }
-        params.set("page", "1"); // 重置到第一页
+        params.set("page", "1");
         router.push(`/products?${params.toString()}`);
       }, 500);
-    },
-    [router, searchParams]
-  );
-
-  // 分类筛选：选中即跳转
-  const handleCategoryChange = useCallback(
-    (value: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (value) {
-        params.set("categoryId", value);
-      } else {
-        params.delete("categoryId");
-      }
-      params.set("page", "1");
-      router.push(`/products?${params.toString()}`);
     },
     [router, searchParams]
   );
@@ -84,20 +63,6 @@ export default function SearchBar({ categories }: SearchBarProps) {
           className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </div>
-
-      {/* 分类下拉 */}
-      <select
-        value={currentCategory}
-        onChange={(e) => handleCategoryChange(e.target.value)}
-        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-      >
-        <option value="">全部分类</option>
-        {categories.map((cat) => (
-          <option key={cat.id} value={cat.id}>
-            {cat.name}
-          </option>
-        ))}
-      </select>
 
       {/* 有筛选条件时显示清除按钮 */}
       {(currentSearch || currentCategory) && (
