@@ -79,11 +79,7 @@ export default function Header() {
       ]
     : [];
 
-  const adminItems = isAdmin
-    ? [{ href: "/admin", label: "后台管理" }]
-    : [];
-
-  const allItems = [...NAV_ITEMS, ...authedItems, ...adminItems];
+  const allItems = [...NAV_ITEMS, ...authedItems];
 
   function closeMenu() {
     setMenuOpen(false);
@@ -113,6 +109,17 @@ export default function Header() {
         <div className="hidden items-center gap-3 md:flex">
           {session ? (
             <div className="flex items-center gap-3">
+              {/* 后台管理入口 — 新标签页打开 */}
+              {isAdmin && (
+                <a
+                  href="/admin"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-md px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-50"
+                >
+                  后台管理
+                </a>
+              )}
               <Link href="/member" className="flex items-center gap-2 rounded-md px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">
                 {session.user?.avatar ? (
                   <img src={session.user.avatar} alt="" className="h-7 w-7 rounded-full object-cover" />
@@ -216,6 +223,17 @@ export default function Header() {
             <hr className="my-2 border-gray-200" />
             {session ? (
               <div className="flex flex-col gap-2 px-3 py-2">
+                {isAdmin && (
+                  <a
+                    href="/admin"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={closeMenu}
+                    className="rounded-md px-0 py-1 text-left text-sm font-medium text-orange-600 hover:text-orange-700"
+                  >
+                    后台管理
+                  </a>
+                )}
                 <Link href="/member" onClick={closeMenu} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
                   {session.user?.avatar ? (
                     <img src={session.user.avatar} alt="" className="h-6 w-6 rounded-full object-cover" />
