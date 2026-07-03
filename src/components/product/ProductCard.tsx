@@ -84,19 +84,19 @@ export default function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {/* 商品信息 */}
-      <div className="p-3">
+      <div className="p-2.5">
         {/* 分类标签 */}
-        <span className="inline-block rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-600">
+        <span className="inline-block rounded bg-blue-50 px-1.5 py-0.5 text-[10px] leading-tight text-blue-600">
           {product.category.name}
         </span>
 
         {/* 商品名称 */}
-        <h3 className="mt-1.5 text-sm font-medium text-gray-900 line-clamp-2">
+        <h3 className="mt-1 text-xs font-medium text-gray-900 line-clamp-2 leading-snug">
           {product.name}
         </h3>
 
         {/* 价格 */}
-        <p className="mt-2 text-base font-bold text-red-500">
+        <p className="mt-1.5 text-sm font-bold text-red-500">
           {formatPrice(product.price)}
         </p>
 
@@ -104,7 +104,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         <button
           onClick={handleAddToCart}
           disabled={adding}
-          className={`mt-2 w-full rounded-md py-1.5 text-center text-sm text-white transition-colors ${
+          className={`mt-1.5 w-full rounded-md py-1 text-center text-xs text-white transition-colors ${
             added
               ? "bg-green-500"
               : "bg-blue-600 hover:bg-blue-700"

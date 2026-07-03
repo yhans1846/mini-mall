@@ -26,7 +26,7 @@ export default function ProductGrid({ products, loading }: ProductGridProps) {
   // 加载中：显示 6 个骨架屏
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
         {Array.from({ length: 6 }).map((_, i) => (
           <SkeletonCard key={i} />
         ))}
@@ -49,7 +49,7 @@ export default function ProductGrid({ products, loading }: ProductGridProps) {
 
   // 正常网格
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
       {products.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
