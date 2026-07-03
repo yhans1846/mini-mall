@@ -16,19 +16,41 @@ interface CartItemData {
   product: Product & { category: Category };
 }
 
+interface AddressData {
+  id: number;
+  name: string;
+  phone: string;
+  province: string;
+  city: string;
+  district: string;
+  detail: string;
+  isDefault: boolean;
+}
+
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+/** 格式化地址显示 */
+function formatAddress(a: AddressData) {
+  return [a.province, a.city, a.district, a.detail].filter(Boolean).join("");
+}
 
 export default function CheckoutPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [selectedAddrId, setSelectedAddrId] = useState<number | null>(null);
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState("");
 
-  const { data: items, isLoading } = useSWR<CartItemData[]>(
+  const { data: items, isLoading: cartLoading } = useSWR<CartItemData[]>(
     session ? "/api/cart" : null,
-    fetcher
+    fetcher,
+  );
+
+  const { data: addresses } = useSWR<AddressData[]>(
+    session ? "/api/addresses" : null,
+    fetcher,
   );
 
   // 未登录
@@ -37,7 +59,7 @@ export default function CheckoutPage() {
     return null;
   }
 
-  if (status === "loading" || isLoading) {
+  if (status === "loading" || cartLoading) {
     return (
       <div className="py-8">
         <h1 className="mb-6 text-2xl font-bold">确认订单</h1>
@@ -51,7 +73,7 @@ export default function CheckoutPage() {
 
   const originalTotal = (items || []).reduce(
     (sum, item) => sum + item.product.price * item.quantity,
-    0
+    0,
   );
 
   // 空购物车
@@ -67,6 +89,13 @@ export default function CheckoutPage() {
         </div>
       </div>
     );
+  }
+
+  /** 选择地址 */
+  function selectAddress(addr: AddressData) {
+    setSelectedAddrId(addr.id);
+    setAddress(formatAddress(addr));
+    setPhone(addr.phone);
   }
 
   const handleSubmit = async () => {
@@ -131,19 +160,80 @@ export default function CheckoutPage() {
 
       {/* 收货信息 */}
       <div className="mb-6 rounded-lg border bg-white p-4">
-        <h2 className="mb-3 font-medium text-gray-900">收货信息</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-medium text-gray-900">收货信息</h2>
+          <Link
+            href="/member/addresses"
+            className="text-sm text-blue-600 hover:underline"
+          >
+            管理收货地址
+          </Link>
+        </div>
+
+        {/* 已保存地址列表 */}
+        {addresses && addresses.length > 0 && (
+          <div className="mb-4 space-y-2">
+            {addresses.map((addr) => {
+              const active = selectedAddrId === addr.id;
+              return (
+                <button
+                  key={addr.id}
+                  type="button"
+                  onClick={() => selectAddress(addr)}
+                  className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                    active
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <div
+                      className={`mt-0.5 h-4 w-4 flex-shrink-0 rounded-full border-2 ${
+                        active
+                          ? "border-blue-500 bg-blue-500"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      {active && (
+                        <div className="flex h-full items-center justify-center">
+                          <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900">{addr.name}</span>
+                        <span className="text-xs text-gray-500">{addr.phone}</span>
+                        {addr.isDefault && (
+                          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-600">
+                            默认
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-sm text-gray-600">
+                        {formatAddress(addr)}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 手动输入区 */}
         <div className="space-y-3">
           <input
             type="text"
             value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="收货地址"
+            onChange={(e) => { setAddress(e.target.value); setSelectedAddrId(null); }}
+            placeholder="收货地址（省市区 + 详细地址）"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
           />
           <input
             type="text"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => { setPhone(e.target.value); setSelectedAddrId(null); }}
             placeholder="联系电话"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
           />
