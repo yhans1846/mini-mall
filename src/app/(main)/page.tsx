@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import ProductGrid from "@/components/product/ProductGrid";
+import HeroCarousel from "@/components/home/HeroCarousel";
 import type { Product } from "@/types";
 
 /** 分类配置 */
@@ -25,21 +26,8 @@ export default async function Home() {
 
   return (
     <div>
-      {/* Hero Banner */}
-      <section className="-mx-4 mb-8 bg-gradient-to-r from-blue-500 to-blue-700 px-4 py-16 text-white sm:rounded-lg sm:mx-0">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold sm:text-4xl">Mini Mall 精选好物</h1>
-          <p className="mt-3 text-lg text-blue-100">
-            精选商品，品质生活，从 Mini Mall 开始
-          </p>
-          <Link
-            href="/products"
-            className="mt-6 inline-block rounded-lg bg-white px-8 py-3 font-medium text-blue-600 shadow transition-colors hover:bg-blue-50"
-          >
-            逛逛商品
-          </Link>
-        </div>
-      </section>
+      {/* Hero 轮播 */}
+      <HeroCarousel />
 
       {/* 分类快速入口 */}
       <section className="mb-8">
