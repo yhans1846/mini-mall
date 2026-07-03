@@ -18,12 +18,27 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const search = searchParams.get("search") || "";
+  const categoryId = searchParams.get("categoryId") || "";
+  const status = searchParams.get("status") || ""; // published | unpublished
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
   const pageSize = 20;
 
-  const where = search
-    ? { OR: [{ name: { contains: search } }, { description: { contains: search } }] }
-    : {};
+  // 构建筛选条件
+  const where: any = {};
+  if (search) {
+    where.OR = [
+      { name: { contains: search } },
+      { description: { contains: search } },
+    ];
+  }
+  if (categoryId) {
+    where.categoryId = parseInt(categoryId, 10);
+  }
+  if (status === "published") {
+    where.isPublished = true;
+  } else if (status === "unpublished") {
+    where.isPublished = false;
+  }
 
   const [total, products] = await Promise.all([
     prisma.product.count({ where }),
