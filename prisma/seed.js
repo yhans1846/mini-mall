@@ -33,44 +33,45 @@ async function main() {
   // ===== 创建商品 =====
   const productsData = [
     // 服装 (clothing)
-    { name: "经典纯棉T恤", description: "100% 纯棉面料，舒适透气，经典百搭款式", price: 99, stock: 200, imageUrl: "/images/products/t-shirt.jpg", categorySlug: "clothing" },
-    { name: "修身牛仔裤", description: "弹力牛仔面料，修身剪裁，日常百搭", price: 259, stock: 150, imageUrl: "/images/products/jeans.jpg", categorySlug: "clothing" },
-    { name: "轻薄羽绒服", description: "90% 白鹅绒填充，防风防泼水，轻便保暖", price: 599, stock: 80, imageUrl: "/images/products/down-jacket.jpg", categorySlug: "clothing" },
+    { name: "经典纯棉T恤", description: "100% 纯棉面料，舒适透气，经典百搭款式", price: 99, stock: 200, categorySlug: "clothing" },
+    { name: "修身牛仔裤", description: "弹力牛仔面料，修身剪裁，日常百搭", price: 259, stock: 150, categorySlug: "clothing" },
+    { name: "轻薄羽绒服", description: "90% 白鹅绒填充，防风防泼水，轻便保暖", price: 599, stock: 80, categorySlug: "clothing" },
     // 电子产品 (electronics)
-    { name: "无线蓝牙耳机", description: "主动降噪，30小时续航，IPX5防水", price: 399, stock: 300, imageUrl: "/images/products/earphones.jpg", categorySlug: "electronics" },
-    { name: "智能手表 Pro", description: "1.5英寸AMOLED屏幕，心率血氧监测，GPS运动追踪", price: 1299, stock: 100, imageUrl: "/images/products/watch.jpg", categorySlug: "electronics" },
-    { name: "便携充电宝 20000mAh", description: "双向快充，支持PD/QC协议，可上飞机", price: 149, stock: 500, imageUrl: "/images/products/powerbank.jpg", categorySlug: "electronics" },
-    { name: "机械键盘 87键", description: "青轴机械开关，RGB背光，铝合金面板", price: 299, stock: 200, imageUrl: "/images/products/keyboard.jpg", categorySlug: "electronics" },
+    { name: "无线蓝牙耳机", description: "主动降噪，30小时续航，IPX5防水", price: 399, stock: 300, categorySlug: "electronics" },
+    { name: "智能手表 Pro", description: "1.5英寸AMOLED屏幕，心率血氧监测，GPS运动追踪", price: 1299, stock: 100, categorySlug: "electronics" },
+    { name: "便携充电宝 20000mAh", description: "双向快充，支持PD/QC协议，可上飞机", price: 149, stock: 500, categorySlug: "electronics" },
+    { name: "机械键盘 87键", description: "青轴机械开关，RGB背光，铝合金面板", price: 299, stock: 200, categorySlug: "electronics" },
     // 家居用品 (home)
-    { name: "记忆棉护颈枕", description: "慢回弹记忆棉，人体工学曲线，透气枕套可拆卸", price: 129, stock: 300, imageUrl: "/images/products/pillow.jpg", categorySlug: "home" },
-    { name: "北欧风台灯", description: "三档调光，LED护眼，简约设计", price: 89, stock: 250, imageUrl: "/images/products/lamp.jpg", categorySlug: "home" },
-    { name: "真空保温杯 500ml", description: "316不锈钢内胆，12小时保温，食品级硅胶密封", price: 79, stock: 400, imageUrl: "/images/products/mug.jpg", categorySlug: "home" },
+    { name: "记忆棉护颈枕", description: "慢回弹记忆棉，人体工学曲线，透气枕套可拆卸", price: 129, stock: 300, categorySlug: "home" },
+    { name: "北欧风台灯", description: "三档调光，LED护眼，简约设计", price: 89, stock: 250, categorySlug: "home" },
+    { name: "真空保温杯 500ml", description: "316不锈钢内胆，12小时保温，食品级硅胶密封", price: 79, stock: 400, categorySlug: "home" },
     // 食品饮料 (food)
-    { name: "云南精品咖啡豆 250g", description: "阿拉比卡单品，中深烘焙，口感醇厚", price: 68, stock: 500, imageUrl: "/images/products/coffee.jpg", categorySlug: "food" },
-    { name: "混合坚果礼盒 1kg", description: "腰果杏仁核桃混合装，每日坚果，独立包装", price: 128, stock: 200, imageUrl: "/images/products/nuts.jpg", categorySlug: "food" },
+    { name: "云南精品咖啡豆 250g", description: "阿拉比卡单品，中深烘焙，口感醇厚", price: 68, stock: 500, categorySlug: "food" },
+    { name: "混合坚果礼盒 1kg", description: "腰果杏仁核桃混合装，每日坚果，独立包装", price: 128, stock: 200, categorySlug: "food" },
     // 图书 (books)
-    { name: "《深入理解计算机系统》", description: "计算机科学经典教材，从程序员视角理解计算机系统", price: 79, stock: 300, imageUrl: "/images/products/csapp.jpg", categorySlug: "books" },
-    { name: "《设计模式：可复用面向对象软件的基础》", description: "GoF 经典设计模式，软件工程师必读", price: 45, stock: 400, imageUrl: "/images/products/design-patterns.jpg", categorySlug: "books" },
+    { name: "《深入理解计算机系统》", description: "计算机科学经典教材，从程序员视角理解计算机系统", price: 79, stock: 300, categorySlug: "books" },
+    { name: "《设计模式：可复用面向对象软件的基础》", description: "GoF 经典设计模式，软件工程师必读", price: 45, stock: 400, categorySlug: "books" },
     // 运动户外 (sports)
-    { name: "瑜伽垫 6mm", description: "TPE环保材质，双面防滑，附带收纳绑带", price: 69, stock: 350, imageUrl: "/images/products/yoga-mat.jpg", categorySlug: "sports" },
-    { name: "专业跑步鞋", description: "缓震回弹中底，透气飞织鞋面，防滑橡胶大底", price: 369, stock: 120, imageUrl: "/images/products/running-shoes.jpg", categorySlug: "sports" },
+    { name: "瑜伽垫 6mm", description: "TPE环保材质，双面防滑，附带收纳绑带", price: 69, stock: 350, categorySlug: "sports" },
+    { name: "专业跑步鞋", description: "缓震回弹中底，透气飞织鞋面，防滑橡胶大底", price: 369, stock: 120, categorySlug: "sports" },
   ];
 
-  const products = await Promise.all(
-    productsData.map((p) =>
-      prisma.product.create({
-        data: {
-          name: p.name,
-          description: p.description,
-          price: p.price,
-          stock: p.stock,
-          imageUrl: p.imageUrl,
-          isPublished: true,
-          category: { connect: { slug: p.categorySlug } },
-        },
-      })
-    )
-  );
+  const products = [];
+  for (let i = 0; i < productsData.length; i++) {
+    const p = productsData[i];
+    const product = await prisma.product.create({
+      data: {
+        name: p.name,
+        description: p.description,
+        price: p.price,
+        stock: p.stock,
+        imageUrl: `/uploads/products/product_${i + 1}.jpg`,
+        isPublished: true,
+        category: { connect: { slug: p.categorySlug } },
+      },
+    });
+    products.push(product);
+  }
   console.log(`✅ 已创建 ${products.length} 件商品`);
 
   // ===== 创建用户 =====

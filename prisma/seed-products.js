@@ -86,7 +86,7 @@ async function main() {
         description: `${CATEGORY_NAMES[catId]} — ${name}，品质保障，值得信赖。`,
         price,
         stock,
-        imageUrl: `https://picsum.photos/seed/product${16 + idx}/400/400`,
+        imageUrl: `/uploads/products/product_${16 + idx}.jpg`,
         isPublished: true,
         categoryId: Number(catId),
       });
