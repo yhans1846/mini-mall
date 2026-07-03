@@ -55,6 +55,8 @@ model Product {
   stock       Int         @default(0)
   imageUrl    String      @default("")
   isPublished Boolean     @default(true)
+  originalPrice Float?    // 原价（用于秒杀显示折扣）
+  isFlashSale Boolean    @default(false) // 是否秒杀商品
   categoryId  Int
   category    Category    @relation(fields: [categoryId], references: [id])
   createdAt   DateTime    @default(now())

@@ -1,19 +1,44 @@
-// src/app/page.tsx — 首页（服务端组件）
+import { prisma } from "@/lib/prisma";
 import HeroCarousel from "@/components/home/HeroCarousel";
+import CategoryNav from "@/components/home/CategoryNav";
+import FlashSale from "@/components/home/FlashSale";
+import HotRanking from "@/components/home/HotRanking";
+import BrandStory from "@/components/home/BrandStory";
 
 export default async function Home() {
+  const [categories, flashProducts, hotProducts] = await Promise.all([
+    prisma.category.findMany({ orderBy: { id: "asc" } }),
+    prisma.product.findMany({
+      where: { isPublished: true, isFlashSale: true },
+      take: 8,
+    }),
+    (async () => {
+      const products = await prisma.product.findMany({
+        where: { isPublished: true },
+      });
+      const orderItems = await prisma.orderItem.groupBy({
+        by: ["productId"],
+        where: { order: { status: { in: ["PAID", "SHIPPED", "COMPLETED"] } } },
+        _sum: { quantity: true },
+      });
+      const salesMap = new Map(orderItems.map((o) => [o.productId, o._sum.quantity || 0]));
+      products.sort((a, b) => {
+        const sa = salesMap.get(a.id) || 0;
+        const sb = salesMap.get(b.id) || 0;
+        if (sa !== sb) return sb - sa;
+        return b.id - a.id;
+      });
+      return products.slice(0, 8);
+    })(),
+  ]);
+
   return (
     <div>
-      {/* Hero 轮播 */}
       <HeroCarousel />
-
-      {/* 新品推荐 */}
-      <section className="mb-8">
-        <h2 className="mb-4 text-lg font-bold text-gray-900">新品推荐</h2>
-        <p className="text-sm text-gray-500">
-          <a href="/products" className="text-blue-600 hover:underline">去商品页浏览全部商品 →</a>
-        </p>
-      </section>
+      <CategoryNav categories={categories} />
+      <FlashSale products={flashProducts} />
+      <HotRanking products={hotProducts} />
+      <BrandStory />
     </div>
   );
 }

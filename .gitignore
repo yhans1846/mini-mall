@@ -58,3 +58,5 @@ node_modules/.prisma/
 # system
 Thumbs.db
 
+# brainstorm prototypes
+.superpowers/

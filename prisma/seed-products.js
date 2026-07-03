@@ -81,6 +81,7 @@ async function main() {
       idx++;
       const price = randomPrice(Number(catId));
       const stock = randomStock();
+      const isFlash = idx <= 30;
       products.push({
         name,
         description: `${CATEGORY_NAMES[catId]} — ${name}，品质保障，值得信赖。`,
@@ -89,6 +90,10 @@ async function main() {
         imageUrl: `https://picsum.photos/seed/product${16 + idx}/400/400`,
         isPublished: true,
         categoryId: Number(catId),
+        originalPrice: isFlash
+          ? Math.round(price * (1.3 + Math.random() * 0.4) * 100) / 100
+          : null,
+        isFlashSale: isFlash,
       });
     }
   }

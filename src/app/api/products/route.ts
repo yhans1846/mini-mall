@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
       50,
       Math.max(1, parseInt(searchParams.get("pageSize") || "12", 10))
     );
+    const sort = searchParams.get("sort") || "";
+    const flashSale = searchParams.get("flashSale") || "";
 
     // 构建查询条件：只查已发布商品
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,13 +32,69 @@ export async function GET(request: NextRequest) {
       where.categoryId = parseInt(categoryId, 10);
     }
 
-    // 并行查询：总条数 + 当前页数据
+    // 秒杀筛选
+    if (flashSale === "true") {
+      where.isFlashSale = true;
+    }
+
+    // 按销量排序：先查所有匹配商品，聚合销量后手动分页
+    if (sort === "sales") {
+      const allProducts = await prisma.product.findMany({
+        where,
+        include: { category: true },
+        orderBy: { id: "desc" },
+      });
+
+      const productIds = allProducts.map((p) => p.id);
+      const salesData =
+        productIds.length > 0
+          ? await prisma.orderItem.groupBy({
+              by: ["productId"],
+              where: {
+                productId: { in: productIds },
+                order: { status: { in: ["PAID", "SHIPPED", "COMPLETED"] } },
+              },
+              _sum: { quantity: true },
+            })
+          : [];
+
+      const salesMap = new Map<number, number>();
+      for (const item of salesData) {
+        salesMap.set(item.productId, item._sum.quantity || 0);
+      }
+
+      // 按销量降序，无销量时按 id 降序兜底
+      const sorted = [...allProducts].sort((a, b) => {
+        const salesA = salesMap.get(a.id) || 0;
+        const salesB = salesMap.get(b.id) || 0;
+        if (salesA !== salesB) return salesB - salesA;
+        return b.id - a.id;
+      });
+
+      const total = sorted.length;
+      const totalPages = Math.ceil(total / pageSize);
+      const products = sorted.slice((page - 1) * pageSize, page * pageSize);
+
+      const response: PaginatedResponse<Product> = {
+        products: products as unknown as Product[],
+        total,
+        page,
+        pageSize,
+        totalPages,
+      };
+
+      return NextResponse.json(response);
+    }
+
+    // 按最新排序或默认（原行为）
+    const orderBy = sort === "newest" ? { createdAt: "desc" as const } : { createdAt: "desc" as const };
+
     const [total, products] = await Promise.all([
       prisma.product.count({ where }),
       prisma.product.findMany({
         where,
         include: { category: true },
-        orderBy: { createdAt: "desc" },
+        orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
