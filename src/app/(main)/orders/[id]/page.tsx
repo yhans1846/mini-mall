@@ -60,7 +60,7 @@ export default function OrderDetailPage() {
 
   if (status === "loading" || isLoading) {
     return (
-      <div className="py-8">
+      <div className="py-4">
         <div className="animate-pulse space-y-4">
           <div className="h-6 w-32 rounded bg-gray-200" />
           <div className="h-40 rounded-lg bg-gray-200" />
@@ -102,9 +102,9 @@ export default function OrderDetailPage() {
   };
 
   return (
-    <div className="py-8">
+    <div className="py-4">
       {/* 面包屑 */}
-      <nav className="mb-6 text-sm text-gray-500">
+      <nav className="mb-3 text-sm text-gray-500">
         <Link href="/orders" className="hover:text-blue-600">我的订单</Link>
         <span className="mx-2">/</span>
         <span className="text-gray-900">订单详情</span>

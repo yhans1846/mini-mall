@@ -168,7 +168,7 @@ export default function MemberPage() {
   // ===== 渲染状态 =====
   if (status === "loading" || isLoading) {
     return (
-      <div className="mx-auto max-w-2xl py-8">
+      <div className="mx-auto max-w-2xl py-4">
         <div className="animate-pulse space-y-4">
           <div className="h-24 rounded-xl bg-gray-200" />
           <div className="h-48 rounded-xl bg-gray-200" />
@@ -188,7 +188,7 @@ export default function MemberPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl py-8">
+    <div className="mx-auto max-w-2xl py-4">
       {/* ===== 用户信息卡片 ===== */}
       <div className="mb-6 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 p-6 text-white">
         <div className="flex items-center gap-4">

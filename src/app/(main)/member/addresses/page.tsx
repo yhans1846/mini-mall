@@ -72,7 +72,7 @@ export default function AddressPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-2xl py-8">
+      <div className="mx-auto max-w-2xl py-4">
         <div className="animate-pulse space-y-3">
           {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 rounded-xl bg-gray-200" />)}
         </div>
@@ -81,7 +81,7 @@ export default function AddressPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl py-8">
+    <div className="mx-auto max-w-2xl py-4">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/member" className="text-gray-400 hover:text-gray-600">

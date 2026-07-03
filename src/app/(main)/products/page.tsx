@@ -11,8 +11,8 @@ export default async function ProductsPage() {
   });
 
   return (
-    <div className="py-6">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">全部商品</h1>
+    <div className="py-3">
+      <h1 className="mb-3 text-2xl font-bold text-gray-900">全部商品</h1>
       <Suspense fallback={null}>
         <ProductListContent categories={categories as unknown as Category[]} />
       </Suspense>

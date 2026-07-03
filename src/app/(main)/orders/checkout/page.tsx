@@ -61,8 +61,8 @@ export default function CheckoutPage() {
 
   if (status === "loading" || cartLoading) {
     return (
-      <div className="py-8">
-        <h1 className="mb-6 text-2xl font-bold">确认订单</h1>
+      <div className="py-4">
+        <h1 className="mb-3 text-2xl font-bold">确认订单</h1>
         <div className="animate-pulse space-y-4">
           <div className="h-32 rounded-lg bg-gray-200" />
           <div className="h-20 rounded-lg bg-gray-200" />
@@ -79,8 +79,8 @@ export default function CheckoutPage() {
   // 空购物车
   if (!items || items.length === 0) {
     return (
-      <div className="py-8">
-        <h1 className="mb-6 text-2xl font-bold">确认订单</h1>
+      <div className="py-4">
+        <h1 className="mb-3 text-2xl font-bold">确认订单</h1>
         <div className="flex flex-col items-center py-16 text-gray-500">
           <p className="text-lg">购物车是空的</p>
           <Link href="/products" className="mt-3 text-sm text-blue-600 hover:underline">

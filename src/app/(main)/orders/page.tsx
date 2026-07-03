@@ -51,8 +51,8 @@ export default function OrdersPage() {
 
   if (status === "loading" || isLoading) {
     return (
-      <div className="py-8">
-        <h1 className="mb-6 text-2xl font-bold">我的订单</h1>
+      <div className="py-4">
+        <h1 className="mb-3 text-2xl font-bold">我的订单</h1>
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="animate-pulse rounded-lg border bg-white p-4">
@@ -67,8 +67,8 @@ export default function OrdersPage() {
 
   if (error) {
     return (
-      <div className="py-8">
-        <h1 className="mb-6 text-2xl font-bold">我的订单</h1>
+      <div className="py-4">
+        <h1 className="mb-3 text-2xl font-bold">我的订单</h1>
         <div className="flex flex-col items-center py-16 text-gray-500">
           <p className="text-lg">加载失败</p>
         </div>
@@ -78,8 +78,8 @@ export default function OrdersPage() {
 
   if (!orders || orders.length === 0) {
     return (
-      <div className="py-8">
-        <h1 className="mb-6 text-2xl font-bold">我的订单</h1>
+      <div className="py-4">
+        <h1 className="mb-3 text-2xl font-bold">我的订单</h1>
         <div className="flex flex-col items-center py-16 text-gray-500">
           <p className="text-lg">暂无订单</p>
           <Link href="/products" className="mt-3 text-sm text-blue-600 hover:underline">

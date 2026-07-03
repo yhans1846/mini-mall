@@ -62,7 +62,7 @@ export default function ProductListContent({ categories }: ProductListContentPro
       <SearchBar />
 
       {/* 分类快速入口 */}
-      <section className="mb-6 mt-4">
+      <section className="mb-4 mt-2">
         <div className="flex flex-wrap gap-2">
           <Link
             href="/products"
@@ -91,7 +91,7 @@ export default function ProductListContent({ categories }: ProductListContentPro
         </div>
       </section>
 
-      <div className="mt-6">
+      <div className="mt-3">
         <ProductGrid products={data?.products || []} loading={isLoading} />
       </div>
 

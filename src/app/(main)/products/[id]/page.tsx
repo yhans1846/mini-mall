@@ -65,9 +65,9 @@ export default function ProductDetailPage() {
   // 加载中
   if (isLoading) {
     return (
-      <div className="py-8">
+      <div className="py-4">
         <div className="animate-pulse">
-          <div className="mb-6 h-6 w-32 rounded bg-gray-200" />
+          <div className="mb-3 h-6 w-32 rounded bg-gray-200" />
           <div className="grid gap-8 md:grid-cols-2">
             <div className="aspect-square rounded-lg bg-gray-200" />
             <div className="space-y-4">
@@ -95,9 +95,9 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="py-8">
+    <div className="py-4">
       {/* 面包屑 */}
-      <nav className="mb-6 text-sm text-gray-500">
+      <nav className="mb-3 text-sm text-gray-500">
         <Link href="/" className="hover:text-blue-600">首页</Link>
         <span className="mx-2">/</span>
         <Link href="/products" className="hover:text-blue-600">商品</Link>
