@@ -14,10 +14,27 @@ export interface Product {
   stock: number;
   imageUrl: string;
   isPublished: boolean;
-  isFlashSale: boolean;
-  originalPrice: number | null;
   categoryId: number;
   category: Category;
+  createdAt: string;
+  flashSale?: FlashSaleInfo | null;
+}
+
+export interface FlashSaleInfo {
+  flashPrice: number;
+  flashStock: number;
+  endTime: string;
+}
+
+export interface FlashSale {
+  id: number;
+  productId: number;
+  flashPrice: number;
+  flashStock: number;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+  product: Product;
   createdAt: string;
 }
 

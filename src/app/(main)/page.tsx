@@ -6,12 +6,8 @@ import HotRanking from "@/components/home/HotRanking";
 import BrandStory from "@/components/home/BrandStory";
 
 export default async function Home() {
-  const [categories, flashProducts, hotProducts] = await Promise.all([
+  const [categories, hotProducts] = await Promise.all([
     prisma.category.findMany({ orderBy: { id: "asc" } }),
-    prisma.product.findMany({
-      where: { isPublished: true, isFlashSale: true },
-      take: 8,
-    }),
     (async () => {
       const products = await prisma.product.findMany({
         where: { isPublished: true },
@@ -36,7 +32,7 @@ export default async function Home() {
     <div>
       <HeroCarousel />
       <CategoryNav categories={categories} />
-      <FlashSale products={flashProducts} />
+      <FlashSale />
       <HotRanking products={hotProducts} />
       <BrandStory />
     </div>

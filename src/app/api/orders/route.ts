@@ -62,27 +62,56 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "购物车为空" }, { status: 400 });
   }
 
-  // 检查库存
+  // 获取当前秒杀活动
+  const now = new Date();
+  const productIds = cartItems.map((item) => item.productId);
+  const flashSales = await prisma.flashSale.findMany({
+    where: {
+      productId: { in: productIds },
+      isActive: true,
+      startTime: { lte: now },
+      endTime: { gt: now },
+    },
+  });
+  const flashSaleMap = new Map(flashSales.map((fs) => [fs.productId, fs]));
+
+  // 检查库存（秒杀商品检查秒杀库存，普通商品检查普通库存）
   for (const item of cartItems) {
-    if (item.quantity > item.product.stock) {
-      return NextResponse.json(
-        {
-          error: `"${item.product.name}" 库存不足，当前库存 ${item.product.stock} 件`,
-        },
-        { status: 400 }
-      );
+    const fs = flashSaleMap.get(item.productId);
+    if (fs) {
+      if (item.quantity > fs.flashStock) {
+        return NextResponse.json(
+          {
+            error: `"${item.product.name}" 秒杀库存不足，当前剩余 ${fs.flashStock} 件`,
+          },
+          { status: 400 }
+        );
+      }
+    } else {
+      if (item.quantity > item.product.stock) {
+        return NextResponse.json(
+          {
+            error: `"${item.product.name}" 库存不足，当前库存 ${item.product.stock} 件`,
+          },
+          { status: 400 }
+        );
+      }
     }
   }
 
-  // 计算金额
+  // 计算金额（秒杀商品使用秒杀价）
   const originalAmount = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
+    (sum, item) => {
+      const fs = flashSaleMap.get(item.productId);
+      const price = fs ? fs.flashPrice : item.product.price;
+      return sum + price * item.quantity;
+    },
     0
   );
   const discountRate = getDiscountRate(user.membershipLevel);
   const totalAmount = Math.round(originalAmount * discountRate * 100) / 100;
 
-  // 事务：创建订单 → 扣库存 → 清空购物车
+  // 事务：创建订单 → 扣库存（秒杀扣秒杀库存）→ 清空购物车
   const order = await prisma.$transaction(async (tx) => {
     // 1. 创建订单
     const order = await tx.order.create({
@@ -96,21 +125,34 @@ export async function POST(request: NextRequest) {
         phone: body.phone,
         note: body.note || "",
         items: {
-          create: cartItems.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.product.price,
-          })),
+          create: cartItems.map((item) => {
+            const fs = flashSaleMap.get(item.productId);
+            return {
+              productId: item.productId,
+              quantity: item.quantity,
+              price: fs ? fs.flashPrice : item.product.price,
+            };
+          }),
         },
       },
     });
 
     // 2. 扣减库存
     for (const item of cartItems) {
-      await tx.product.update({
-        where: { id: item.productId },
-        data: { stock: { decrement: item.quantity } },
-      });
+      const fs = flashSaleMap.get(item.productId);
+      if (fs) {
+        // 秒杀商品：扣秒杀库存，不扣普通库存
+        await tx.flashSale.update({
+          where: { id: fs.id },
+          data: { flashStock: { decrement: item.quantity } },
+        });
+      } else {
+        // 普通商品：扣普通库存
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } },
+        });
+      }
     }
 
     // 3. 清空购物车

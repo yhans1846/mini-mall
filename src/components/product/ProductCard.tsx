@@ -65,7 +65,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     >
       {/* 商品图片 */}
       <div className="relative aspect-square overflow-hidden bg-gray-100">
-        {product.isFlashSale && (
+        {product.flashSale && (
           <span className="absolute left-0 top-0 z-10 rounded-br-lg bg-red-500 px-2 py-0.5 text-[10px] font-medium text-white">
             秒杀中
           </span>
@@ -102,10 +102,10 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* 价格 */}
         <p className="mt-1 text-sm font-bold text-red-500">
-          {formatPrice(product.price)}
-          {product.isFlashSale && product.originalPrice && (
+          {product.flashSale ? formatPrice(product.flashSale.flashPrice) : formatPrice(product.price)}
+          {product.flashSale && (
             <span className="ml-1 text-[10px] font-normal text-gray-400 line-through">
-              {formatPrice(product.originalPrice)}
+              {formatPrice(product.price)}
             </span>
           )}
         </p>

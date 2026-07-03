@@ -5,6 +5,7 @@ import { useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import useSWR from "swr";
 import Link from "next/link";
+import CountdownTimer from "@/components/ui/CountdownTimer";
 import type { Product, Category } from "@/types";
 
 interface ProductDetail extends Product {
@@ -112,7 +113,7 @@ export default function ProductDetailPage() {
       <div className="grid gap-8 md:grid-cols-2">
         {/* 商品大图 */}
         <div className="relative overflow-hidden rounded-lg bg-gray-100">
-          {product.isFlashSale && (
+          {product.flashSale && (
             <span className="absolute left-0 top-0 z-10 rounded-br-lg bg-red-500 px-3 py-1 text-sm font-medium text-white">
               秒杀中
             </span>
@@ -143,14 +144,18 @@ export default function ProductDetailPage() {
           {/* 价格 */}
           <div className="mt-4 flex items-baseline gap-3">
             <span className="text-3xl font-bold text-red-500">
-              {formatPrice(product.price)}
+              {product.flashSale ? formatPrice(product.flashSale.flashPrice) : formatPrice(product.price)}
             </span>
-            {product.isFlashSale && product.originalPrice && (
+            {product.flashSale && (
               <span className="text-lg text-gray-400 line-through">
-                {formatPrice(product.originalPrice)}
+                {formatPrice(product.price)}
               </span>
             )}
           </div>
+          {/* 秒杀倒计时 */}
+          {product.flashSale && (
+            <CountdownTimer endTime={product.flashSale.endTime} />
+          )}
 
           {/* 库存信息 */}
           <p className="mt-2 text-sm text-gray-500">

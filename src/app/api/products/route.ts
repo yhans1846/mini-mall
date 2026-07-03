@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { attachFlashSales } from "@/lib/flash-sale";
 import type { Product, PaginatedResponse } from "@/types";
 
 export async function GET(request: NextRequest) {
@@ -13,7 +14,6 @@ export async function GET(request: NextRequest) {
       Math.max(1, parseInt(searchParams.get("pageSize") || "12", 10))
     );
     const sort = searchParams.get("sort") || "";
-    const flashSale = searchParams.get("flashSale") || "";
 
     // 构建查询条件：只查已发布商品
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,11 +30,6 @@ export async function GET(request: NextRequest) {
     // 分类筛选
     if (categoryId) {
       where.categoryId = parseInt(categoryId, 10);
-    }
-
-    // 秒杀筛选
-    if (flashSale === "true") {
-      where.isFlashSale = true;
     }
 
     // 按销量排序：先查所有匹配商品，聚合销量后手动分页
@@ -74,9 +69,10 @@ export async function GET(request: NextRequest) {
       const total = sorted.length;
       const totalPages = Math.ceil(total / pageSize);
       const products = sorted.slice((page - 1) * pageSize, page * pageSize);
+      const productsWithFlash = await attachFlashSales(products);
 
       const response: PaginatedResponse<Product> = {
-        products: products as unknown as Product[],
+        products: productsWithFlash as unknown as Product[],
         total,
         page,
         pageSize,
@@ -101,16 +97,15 @@ export async function GET(request: NextRequest) {
     ]);
 
     const totalPages = Math.ceil(total / pageSize);
+    const productsWithFlash = await attachFlashSales(products);
 
     const response: PaginatedResponse<Product> = {
-      products: products as unknown as Product[],
+      products: productsWithFlash as unknown as Product[],
       total,
       page,
       pageSize,
       totalPages,
     };
-
-    return NextResponse.json(response);
   } catch {
     return NextResponse.json(
       { error: "获取商品列表失败" },

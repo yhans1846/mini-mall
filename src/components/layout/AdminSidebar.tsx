@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 const NAV_ITEMS = [
   { href: "/admin", label: "仪表盘", icon: "📊" },
   { href: "/admin/products", label: "商品管理", icon: "📦" },
+  { href: "/admin/flash-sales", label: "秒杀活动", icon: "⚡" },
   { href: "/admin/orders", label: "订单管理", icon: "📋" },
   { href: "/admin/categories", label: "分类管理", icon: "🏷️" },
 ] as const;

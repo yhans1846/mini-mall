@@ -1,6 +1,7 @@
 // src/app/api/products/[id]/route.ts — 商品详情 API
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { attachFlashSale } from "@/lib/flash-sale";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -24,7 +25,9 @@ export async function GET(_request: Request, { params }: Params) {
       return NextResponse.json({ error: "商品不存在" }, { status: 404 });
     }
 
-    return NextResponse.json(product);
+    const productWithFlash = await attachFlashSale(product);
+
+    return NextResponse.json(productWithFlash);
   } catch {
     return NextResponse.json({ error: "获取商品详情失败" }, { status: 500 });
   }

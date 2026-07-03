@@ -1,4 +1,4 @@
-// prisma/seed-products.js — 生成 200 条商品数据
+// prisma/seed-products.js — 生成 200 条商品数据 + 秒杀活动
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
@@ -66,7 +66,7 @@ async function main() {
   // 清理旧数据（保留原始 16 条）
   const existingCount = await prisma.product.count();
   if (existingCount > 16) {
-    // 只删之前生成的假数据（id > 16）
+    await prisma.flashSale.deleteMany({ where: { productId: { gt: 16 } } });
     await prisma.cartItem.deleteMany({ where: { productId: { gt: 16 } } });
     await prisma.orderItem.deleteMany({ where: { productId: { gt: 16 } } });
     await prisma.product.deleteMany({ where: { id: { gt: 16 } } });
@@ -81,7 +81,6 @@ async function main() {
       idx++;
       const price = randomPrice(Number(catId));
       const stock = randomStock();
-      const isFlash = idx <= 30;
       products.push({
         name,
         description: `${CATEGORY_NAMES[catId]} — ${name}，品质保障，值得信赖。`,
@@ -90,10 +89,6 @@ async function main() {
         imageUrl: `https://picsum.photos/seed/product${16 + idx}/400/400`,
         isPublished: true,
         categoryId: Number(catId),
-        originalPrice: isFlash
-          ? Math.round(price * (1.3 + Math.random() * 0.4) * 100) / 100
-          : null,
-        isFlashSale: isFlash,
       });
     }
   }
@@ -104,6 +99,30 @@ async function main() {
   }
 
   console.log(`成功插入 ${products.length} 条商品数据`);
+
+  // ===== 创建秒杀活动（前 8 个商品） =====
+  const allProducts = await prisma.product.findMany({
+    where: { id: { gt: 16 } },
+    orderBy: { id: "asc" },
+    take: 8,
+  });
+
+  const now = new Date();
+  for (let i = 0; i < allProducts.length; i++) {
+    const prod = allProducts[i];
+    const flashPrice = Math.round(prod.price * (0.5 + Math.random() * 0.3) * 100) / 100;
+    await prisma.flashSale.create({
+      data: {
+        productId: prod.id,
+        flashPrice,
+        flashStock: Math.floor(Math.random() * 50) + 5,
+        startTime: new Date(now.getTime() - 1000 * 60 * 60 * 2), // 2 小时前开始
+        endTime: new Date(now.getTime() + 1000 * 60 * 60 * (i + 2)), // 依次 2-9 小时后结束
+        isActive: true,
+      },
+    });
+  }
+  console.log(`✅ 已创建 ${allProducts.length} 个秒杀活动`);
   await prisma.$disconnect();
 }
 
