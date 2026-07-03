@@ -13,45 +13,56 @@
 | 认证 | next-auth v5 (Credentials + JWT) |
 | 加密 | bcryptjs |
 | 校验 | zod |
+| 客户端请求 | SWR |
 
 ## 目录结构
 
 ```
 src/
 ├── app/
-│   ├── api/            # API 路由
-│   │   ├── auth/       # next-auth
-│   │   ├── products/   # 商品查询
-│   │   ├── cart/       # 购物车
-│   │   ├── orders/     # 订单
-│   │   └── admin/      # 后台管理
-│   ├── layout.tsx      # 根布局
-│   ├── page.tsx        # 首页
-│   ├── products/       # 商品浏览
-│   ├── cart/           # 购物车
-│   ├── orders/         # 订单管理
-│   ├── auth/           # 登录注册
-│   ├── member/         # 会员中心
-│   └── admin/          # 后台管理
+│   ├── api/                # API 路由
+│   │   ├── auth/           # next-auth
+│   │   ├── products/       # 商品查询（支持排序/秒杀筛选）
+│   │   ├── cart/           # 购物车 CRUD
+│   │   ├── orders/         # 订单 CRUD + 模拟支付
+│   │   ├── member/         # 会员信息/头像/密码
+│   │   └── admin/          # 后台管理
+│   │       ├── products/   # 商品 CRUD
+│   │       ├── orders/     # 订单管理
+│   │       ├── categories/ # 分类管理
+│   │       └── dashboard/  # 仪表盘统计
+│   ├── layout.tsx          # 根布局
+│   ├── (main)/             # 前台路由组
+│   │   ├── page.tsx        # 首页
+│   │   ├── products/       # 商品浏览
+│   │   ├── cart/           # 购物车
+│   │   ├── orders/         # 订单管理（含结算页）
+│   │   ├── auth/           # 登录注册
+│   │   └── member/         # 会员中心
+│   └── admin/              # 后台管理（AdminSidebar 布局）
 ├── components/
-│   ├── layout/         # Header / Footer / AdminSidebar
-│   ├── product/        # 商品卡片、网格、搜索
-│   ├── cart/           # 购物车项、汇总
-│   ├── order/          # 订单卡片
-│   ├── admin/          # 商品表单、分类表单
-│   └── ui/             # 分页、确认弹窗
+│   ├── layout/             # Header / Footer / AdminSidebar
+│   ├── home/               # 首页组件：轮播/分类入口/秒杀/热销/品牌故事
+│   ├── product/            # 商品卡片、网格、搜索
+│   ├── cart/               # 购物车项、汇总
+│   ├── order/              # 订单卡片
+│   ├── admin/              # 商品表单、分类表单
+│   └── ui/                 # 分页、确认弹窗
 ├── lib/
-│   ├── prisma.ts       # Prisma 客户端单例
-│   ├── auth.ts         # next-auth 配置
-│   ├── validations.ts  # zod 校验规则
-│   └── utils.ts        # 通用工具函数
-└── types/
-    └── index.ts        # 类型定义
+│   ├── prisma.ts           # Prisma 客户端单例
+│   ├── auth.ts             # next-auth 配置
+│   ├── validations.ts      # zod 校验规则
+│   └── utils.ts            # 通用工具（等级配置/折扣计算/价格格式化）
+├── types/
+│   └── index.ts            # 类型定义
+└── prisma/
+    ├── schema.prisma        # 数据模型（7 个模型）
+    └── seed.js              # 种子数据（含测试用户、秒杀商品）
 ```
 
 ## 数据模型
 
-6 个模型：User / Category / Product / CartItem / Order / OrderItem
+7 个模型：User / Address / Category / Product / CartItem / Order / OrderItem
 
 详见 [prisma/schema.prisma](prisma/schema.prisma)
 
@@ -60,10 +71,14 @@ src/
 - **价格快照**：`OrderItem.price` 存下单时单价，商品调价不影响历史订单
 - **购物车去重**：`@@unique([userId, productId])` 同一用户同一商品只保留一条
 - **软发布**：`Product.isPublished` 控制前台可见性
+- **秒杀商品**：`Product.isFlashSale` + `originalPrice` 标价，首页限时秒杀区展示
 - **角色**：`User.role` 区分 USER / ADMIN，用于路由守卫和 API 鉴权
 - **会员折扣**：`Order.originalAmount`（原价） + `discountRate`（折扣率快照） + `totalAmount`（折后实付）
+- **地址管理**：`Address` 独立模型，支持多地址 + 默认地址
 
 ## 心悦会员等级
+
+等级配置统一维护在 `src/lib/utils.ts` 的 `MEMBERSHIP_TIERS` 数组。
 
 | 等级 | 名称 | 累计消费门槛 | 折扣 |
 |------|------|-------------|------|
@@ -73,74 +88,100 @@ src/
 | 3 | 心悦3级 | ≥ ¥800,000 | 9折 |
 
 - 累计消费基于已支付订单（PAID / SHIPPED / COMPLETED）的实付金额
-- 等级只升不降
+- 等级只升不降（支付成功后通过 `calcMembershipLevel()` 重新计算）
 - 下单时取当前等级对应折扣率，写入 `Order.discountRate` 快照
 
 ## 路由设计
 
-### 前台
+### 前台（`(main)` 路由组）
 
 | 路由 | 页面 |
 |------|------|
-| `/` | 首页（商品列表、搜索、分类筛选） |
-| `/products/[id]` | 商品详情 |
-| `/cart` | 购物车 |
+| `/` | 首页（轮播 / 分类入口 / 限时秒杀 / 热销排行 / 品牌故事） |
+| `/products` | 商品列表（搜索、分类筛选、排序、分页） |
+| `/products/[id]` | 商品详情（加购） |
+| `/cart` | 购物车（数量修改、删除、去结算） |
+| `/orders/checkout` | 结算页（地址填写、会员折扣展示、下单） |
 | `/orders` | 我的订单列表 |
-| `/orders/[id]` | 订单详情 |
+| `/orders/[id]` | 订单详情（含模拟支付按钮） |
 | `/auth/login` | 登录 |
 | `/auth/register` | 注册 |
-| `/member` | 会员中心 |
+| `/member` | 会员中心（等级、累计消费、升级进度） |
+| `/member/addresses` | 收货地址管理 |
 
-### 后台（需 ADMIN）
+### 后台（`/admin`，需 ADMIN 角色）
 
 | 路由 | 页面 |
 |------|------|
-| `/admin` | 仪表盘 |
-| `/admin/products` | 商品管理 |
+| `/admin` | 仪表盘（商品数/订单数/销售额统计） |
+| `/admin/products` | 商品管理（列表、搜索、上下架） |
 | `/admin/products/new` | 新增商品 |
 | `/admin/products/[id]/edit` | 编辑商品 |
-| `/admin/orders` | 订单管理 |
-| `/admin/orders/[id]` | 订单详情 |
-| `/admin/categories` | 分类管理 |
+| `/admin/orders` | 订单管理（状态筛选、变更） |
+| `/admin/orders/[id]` | 订单详情（状态管理） |
+| `/admin/categories` | 分类管理（增删改） |
 
 ## API
 
-- **公开**: `GET /api/products`（分页/搜索/筛选）、`GET /api/products/[id]`
-- **需登录**: 购物车 CRUD、订单 CRUD、`/api/member`
-- **需 ADMIN**: `/api/admin/products/*`、`/api/admin/orders/*`、`/api/admin/categories/*`
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| `GET` | `/api/products` | 公开 | 商品列表（分页/搜索/分类/排序/秒杀筛选） |
+| `GET` | `/api/products/[id]` | 公开 | 商品详情 |
+| `GET/POST` | `/api/cart` | 需登录 | 购物车列表 / 添加商品 |
+| `PATCH/DELETE` | `/api/cart` | 需登录 | 更新数量 / 删除项 |
+| `POST` | `/api/orders` | 需登录 | 创建订单（结算） |
+| `GET` | `/api/orders` | 需登录 | 我的订单列表 |
+| `GET` | `/api/orders/[id]` | 需登录 | 订单详情 |
+| `PUT` | `/api/orders/[id]` | 需登录 | 模拟支付（PENDING→PAID，更新累计消费+等级） |
+| `GET` | `/api/member` | 需登录 | 会员信息（含当前等级/下一级进度） |
+| `*` | `/api/admin/*` | ADMIN | 后台 CRUD（商品/订单/分类/仪表盘） |
 
 ## 开发命令
 
 ```bash
 npm run dev        # 启动开发服务器
 npm run build      # 构建生产版本
+npm run start      # 启动生产服务器
+npm run lint       # 代码检查
 npm run db:push    # 同步 Prisma schema 到数据库
 npm run db:studio  # 打开 Prisma Studio
 npm run db:seed    # 运行种子数据
+npm run postinstall # 自动 prisma generate（安装依赖后）
 ```
 
 ## 业务流程
 
-1. 注册/登录 → 浏览商品 → 加入购物车
-2. 结算 → 会员折扣自动计算 → 创建订单（PENDING）
-3. 模拟支付 → 订单变 PAID → 累计消费更新 → 等级自动升级
-4. 后台管理订单状态流转
+1. 注册/登录 → 浏览商品（首页各版块 / 商品列表搜索筛选）→ 加入购物车
+2. 进入购物车 → 调整数量 → 去结算
+3. 结算页填写收货地址（可选已有地址）→ 自动计算会员折扣 → 提交订单（PENDING，扣库存，清空购物车）
+4. 订单详情页点"模拟支付" → 订单变 PAID → 累计消费更新 → 会员等级自动升级
+5. 后台管理订单状态流转（PAID → SHIPPED → COMPLETED / CANCELLED）
+
+## 首页版块
+
+| 版块 | 组件 | 说明 |
+|------|------|------|
+| 轮播 | `HeroCarousel` | 全宽轮播 Banner |
+| 分类入口 | `CategoryNav` | 图标+文字分类导航 |
+| 限时秒杀 | `FlashSale` | 秒杀商品网格（`isFlashSale` 标记） |
+| 热销排行 | `HotRanking` | 按销量 Top 8（聚合 OrderItem） |
+| 品牌故事 | `BrandStory` | 品牌介绍区块 |
 
 ## 实现顺序
 
 1. ✅ 项目初始化
 2. ✅ 数据模型 + 建表 + 种子数据
 3. ✅ 认证系统（next-auth + 登录注册页面）
-4. ✅ 公共布局（Header / Footer）
-5. ✅ 商品浏览（列表、搜索、分类筛选、分页）
+4. ✅ 公共布局（Header / Footer / 全局间距规范）
+5. ✅ 商品浏览（列表、搜索、分类筛选、分页、排序）
 6. ✅ 商品详情页 + 加入购物车
-7. ✅ 购物车功能
-8. □ 下单流程（结算页、地址填写、库存扣减、订单创建）
-9. □ 会员折扣与支付（等级折扣计算、模拟支付、累计消费更新、自动升级）
-10. □ 会员中心
-11. □ 我的订单
-12. □ 中间件与权限守卫
-13. □ 后台管理（放到最后，待核心流程跑通后实现）
+7. ✅ 购物车功能（CRUD）
+8. ✅ 下单流程（结算页、地址填写、库存扣减、订单创建）
+9. ✅ 会员折扣与支付（等级折扣计算、模拟支付、累计消费更新、自动升级）
+10. ✅ 会员中心（等级/消费/升级进度）
+11. ✅ 我的订单（列表 + 详情 + 模拟支付）
+12. ✅ 后台管理（仪表盘、商品 CRUD、订单管理、分类管理）
+13. □ 中间件与权限守卫
 
 <!-- superpowers-zh:begin (do not edit between these markers) -->
 # Superpowers-ZH 中文增强版
