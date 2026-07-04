@@ -14,6 +14,8 @@
 | 加密 | bcryptjs |
 | 校验 | zod |
 | 客户端请求 | SWR |
+| 通知 | sonner（Toast 通知） |
+| 图表 | recharts（后台仪表盘） |
 
 ## 目录结构
 
@@ -30,6 +32,8 @@ src/
 │   │       ├── products/   # 商品 CRUD
 │   │       ├── orders/     # 订单管理
 │   │       ├── categories/ # 分类管理
+│   │       ├── flash-sales/# 秒杀活动管理
+│   │       ├── users/      # 用户管理
 │   │       └── dashboard/  # 仪表盘统计
 │   ├── layout.tsx          # 根布局
 │   ├── (main)/             # 前台路由组
@@ -41,18 +45,24 @@ src/
 │   │   └── member/         # 会员中心
 │   └── admin/              # 后台管理（AdminSidebar 布局）
 ├── components/
-│   ├── layout/             # Header / Footer / AdminSidebar
-│   ├── home/               # 首页组件：轮播/分类入口/秒杀/热销/品牌故事
-│   ├── product/            # 商品卡片、网格、搜索
-│   ├── cart/               # 购物车项、汇总
-│   ├── order/              # 订单卡片
-│   ├── admin/              # 商品表单、分类表单
-│   └── ui/                 # 分页、确认弹窗
+│   ├── layout/             # Header（毛玻璃+购物车角标+搜索）/ Footer
+│   ├── home/               # 首页：HeroCarousel / CategoryNav / FlashSale / HotRanking / BrandStory
+│   ├── product/            # 商品卡片（hover动效）、网格（stagger动画）、搜索（防抖）
+│   ├── shared/             # EmptyState / ProductImage 前台共享组件
+│   ├── admin/              # Sidebar / Navbar / Modal / StatCard / StatusBadge / Pagination / Toaster / ConfirmDialog / TableCheckbox
+│   │   └── charts/         # RevenueChart / MonthlyChart / StatusPieChart（Recharts）
+│   └── ui/                 # Pagination、CountdownTimer
 ├── lib/
 │   ├── prisma.ts           # Prisma 客户端单例
 │   ├── auth.ts             # next-auth 配置
 │   ├── validations.ts      # zod 校验规则
-│   └── utils.ts            # 通用工具（等级配置/折扣计算/价格格式化）
+│   ├── utils.ts            # 通用工具（等级配置/折扣计算/价格格式化）
+│   ├── flash-sale.ts       # 秒杀信息附加工具
+│   ├── swr-config.ts       # SWR 全局配置（30s 防重复/关失焦刷新/保持旧数据）
+│   └── export.ts           # CSV 导出工具（BOM 头支持中文）
+├── hooks/
+│   ├── useDebounce.ts      # 通用防抖 hook（300ms）
+│   └── useKeyboardShortcuts.ts # 全局键盘快捷键
 ├── types/
 │   └── index.ts            # 类型定义
 └── prisma/
@@ -99,10 +109,10 @@ src/
 |------|------|
 | `/` | 首页（轮播 / 分类入口 / 限时秒杀 / 热销排行 / 品牌故事） |
 | `/products` | 商品列表（搜索、分类筛选、排序、分页） |
-| `/products/[id]` | 商品详情（加购） |
-| `/cart` | 购物车（数量修改、删除、去结算） |
-| `/orders/checkout` | 结算页（地址填写、会员折扣展示、下单） |
-| `/orders` | 我的订单列表 |
+| `/products/[id]` | 商品详情（加购/立即购买/秒杀倒计时） |
+| `/cart` | 购物车（数量修改、删除、会员折扣预估、去结算） |
+| `/orders/checkout` | 结算页（地址填写、会员折扣明细、下单） |
+| `/orders` | 我的订单列表（状态筛选标签） |
 | `/orders/[id]` | 订单详情（含模拟支付按钮） |
 | `/auth/login` | 登录 |
 | `/auth/register` | 注册 |
@@ -113,13 +123,16 @@ src/
 
 | 路由 | 页面 |
 |------|------|
-| `/admin` | 仪表盘（商品数/订单数/销售额统计） |
-| `/admin/products` | 商品管理（列表、搜索、上下架） |
+| `/admin` | 仪表盘（数据大屏：统计卡片/Recharts图表/热销商品/库存预警） |
+| `/admin/products` | 商品管理（列表、搜索、批量操作、Modal CRUD） |
 | `/admin/products/new` | 新增商品 |
 | `/admin/products/[id]/edit` | 编辑商品 |
-| `/admin/orders` | 订单管理（状态筛选、变更） |
-| `/admin/orders/[id]` | 订单详情（状态管理） |
+| `/admin/orders` | 订单管理（状态/日期筛选、分页） |
+| `/admin/orders/[id]` | 订单详情（状态流转） |
 | `/admin/categories` | 分类管理（增删改） |
+| `/admin/flash-sales` | 秒杀活动管理 |
+| `/admin/users` | 用户管理（只读表格、搜索） |
+| `/admin-login` | 管理员独立登录 |
 
 ## API
 
@@ -129,12 +142,15 @@ src/
 | `GET` | `/api/products/[id]` | 公开 | 商品详情 |
 | `GET/POST` | `/api/cart` | 需登录 | 购物车列表 / 添加商品 |
 | `PATCH/DELETE` | `/api/cart` | 需登录 | 更新数量 / 删除项 |
-| `POST` | `/api/orders` | 需登录 | 创建订单（结算） |
+| `POST` | `/api/orders` | 需登录 | 创建订单（结算，含秒杀/会员折扣） |
 | `GET` | `/api/orders` | 需登录 | 我的订单列表 |
 | `GET` | `/api/orders/[id]` | 需登录 | 订单详情 |
 | `PUT` | `/api/orders/[id]` | 需登录 | 模拟支付（PENDING→PAID，更新累计消费+等级） |
 | `GET` | `/api/member` | 需登录 | 会员信息（含当前等级/下一级进度） |
-| `*` | `/api/admin/*` | ADMIN | 后台 CRUD（商品/订单/分类/仪表盘） |
+| `*` | `/api/admin/*` | ADMIN | 后台 CRUD（商品/订单/分类/仪表盘/秒杀/用户） |
+| `POST` | `/api/admin/auth/login` | 公开 | 管理员登录（独立 JWT） |
+| `GET` | `/api/admin/auth/me` | ADMIN | 当前管理员信息 |
+| `PATCH` | `/api/admin/products` | ADMIN | 批量上架/下架/删除商品 |
 
 ## 开发命令
 
@@ -161,10 +177,10 @@ npm run postinstall # 自动 prisma generate（安装依赖后）
 
 | 版块 | 组件 | 说明 |
 |------|------|------|
-| 轮播 | `HeroCarousel` | 全宽轮播 Banner |
-| 分类入口 | `CategoryNav` | 图标+文字分类导航 |
-| 限时秒杀 | `FlashSale` | 秒杀商品网格（`isFlashSale` 标记） |
-| 热销排行 | `HotRanking` | 按销量 Top 8（聚合 OrderItem） |
+| 轮播 | `HeroCarousel` | 渐变背景+装饰元素+淡入淡出切换+指示点动画 |
+| 分类入口 | `CategoryNav` | 渐变色图标卡片+悬停抬升效果 |
+| 限时秒杀 | `FlashSale` | 秒杀网格（含加载骨架屏/错误重试/倒计时） |
+| 热销排行 | `HotRanking` | 按销量 Top 8（聚合 OrderItem + 排名徽章） |
 | 品牌故事 | `BrandStory` | 品牌介绍区块 |
 
 ## 实现顺序
@@ -180,8 +196,11 @@ npm run postinstall # 自动 prisma generate（安装依赖后）
 9. ✅ 会员折扣与支付（等级折扣计算、模拟支付、累计消费更新、自动升级）
 10. ✅ 会员中心（等级/消费/升级进度）
 11. ✅ 我的订单（列表 + 详情 + 模拟支付）
-12. ✅ 后台管理（仪表盘、商品 CRUD、订单管理、分类管理）
-13. □ 中间件与权限守卫
+12. ✅ 后台管理（仪表盘、商品 CRUD、订单管理、分类管理、秒杀管理、用户管理）
+13. ✅ 前台商城视觉优化（毛玻璃Header/轮播动画/商品卡片/空状态/骨架屏）
+14. ✅ 后台视觉升级（Recharts图表/渐变侧边栏/统计卡片/状态标签）
+15. ✅ 交互增强（Toast通知/全局快捷键/搜索防抖/批量操作/订单筛选）
+16. ✅ 性能优化（SWR全局缓存/仪表盘查询合并/CSV导出/商品卡片stagger动画）
 
 <!-- superpowers-zh:begin (do not edit between these markers) -->
 # Superpowers-ZH 中文增强版
