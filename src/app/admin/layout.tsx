@@ -1,6 +1,8 @@
-// src/app/admin/layout.tsx — 后台布局（侧边栏 + 内容区）
+// src/app/admin/layout.tsx — 若依风格三栏布局
 import type { Metadata } from "next";
-import AdminSidebar from "@/components/layout/AdminSidebar";
+import { SidebarProvider } from "@/components/admin/SidebarContext";
+import Sidebar from "@/components/admin/Sidebar";
+import Navbar from "@/components/admin/Navbar";
 import AdminGuard from "./AdminGuard";
 
 export const metadata: Metadata = {
@@ -15,10 +17,15 @@ export default function AdminLayout({
 }) {
   return (
     <AdminGuard>
-      <div className="flex min-h-screen">
-        <AdminSidebar />
-        <main className="flex-1 bg-gray-50 p-6">{children}</main>
-      </div>
+      <SidebarProvider>
+        <div className="flex min-h-screen" style={{ backgroundColor: "#f0f2f5" }}>
+          <Sidebar />
+          <div className="flex flex-1 flex-col">
+            <Navbar />
+            <main className="flex-1 p-5">{children}</main>
+          </div>
+        </div>
+      </SidebarProvider>
     </AdminGuard>
   );
 }

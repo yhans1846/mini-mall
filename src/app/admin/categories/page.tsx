@@ -1,8 +1,11 @@
-// src/app/admin/categories/page.tsx — 后台分类管理
+// src/app/admin/categories/page.tsx — 若依风格分类管理（Modal 弹窗）
 "use client";
 
 import { useState } from "react";
 import useSWR from "swr";
+import Modal from "@/components/admin/Modal";
+import StatusBadge from "@/components/admin/StatusBadge";
+import { IconAdd, IconEdit, IconDelete } from "@/components/admin/icons";
 
 interface AdminCategory {
   id: number;
@@ -15,163 +18,65 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function AdminCategoriesPage() {
   const { data: categories, error, isLoading, mutate } = useSWR<AdminCategory[]>("/api/admin/categories", fetcher);
-  const [showForm, setShowForm] = useState(false);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editSlug, setEditSlug] = useState("");
+  const isEdit = editingId !== null;
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const openCreate = () => { setEditingId(null); setName(""); setSlug(""); setModalOpen(true); };
+  const openEdit = (cat: AdminCategory) => { setEditingId(cat.id); setName(cat.name); setSlug(cat.slug); setModalOpen(true); };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !slug) return;
     setSubmitting(true);
-    const res = await fetch("/api/admin/categories", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, slug }),
-    });
-    if (res.ok) {
-      setName("");
-      setSlug("");
-      setShowForm(false);
-      mutate();
-    } else {
-      const err = await res.json();
-      alert(err.error || "创建失败");
-    }
+    const url = isEdit ? `/api/admin/categories/${editingId}` : "/api/admin/categories";
+    const method = isEdit ? "PATCH" : "POST";
+    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, slug }) });
+    if (res.ok) { setModalOpen(false); mutate(); } else { const err = await res.json(); alert(err.error || "操作失败"); }
     setSubmitting(false);
-  };
-
-  const handleUpdate = async (id: number) => {
-    if (!editName || !editSlug) return;
-    const res = await fetch(`/api/admin/categories/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editName, slug: editSlug }),
-    });
-    if (res.ok) {
-      setEditingId(null);
-      mutate();
-    }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("确定删除此分类？")) return;
     const res = await fetch(`/api/admin/categories/${id}`, { method: "DELETE" });
-    if (res.ok) mutate();
-    else {
-      const err = await res.json();
-      alert(err.error || "删除失败");
-    }
+    if (res.ok) mutate(); else { const err = await res.json(); alert(err.error || "删除失败"); }
   };
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">分类管理</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
-        >
-          {showForm ? "取消" : "新增分类"}
-        </button>
+        <h1 className="text-xl font-semibold text-gray-800">分类管理</h1>
+        <button onClick={openCreate} className="btn-primary"><IconAdd className="h-4 w-4" />新增分类</button>
       </div>
 
-      {/* 新增表单 */}
-      {showForm && (
-        <form onSubmit={handleCreate} className="mb-6 flex gap-3 rounded-lg border bg-white p-4">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="分类名称"
-            className="flex-1 rounded-lg border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-          />
-          <input
-            type="text"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="标识 (如 clothing)"
-            className="flex-1 rounded-lg border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:bg-blue-400"
-          >
-            创建
-          </button>
-        </form>
-      )}
-
       {isLoading ? (
-        <div className="animate-pulse space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-12 rounded bg-gray-200" />
-          ))}
-        </div>
+        <div className="admin-card animate-pulse p-6">{Array.from({ length: 4 }).map((_, i) => (<div key={i} className="mb-3 h-10 rounded bg-gray-100" />))}</div>
       ) : error ? (
-        <p className="text-gray-500">加载失败</p>
+        <div className="admin-card p-6 text-center text-sm text-gray-500">加载失败</div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-white">
-          <table className="w-full text-sm">
-            <thead className="border-b bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left">ID</th>
-                <th className="px-4 py-3 text-left">名称</th>
-                <th className="px-4 py-3 text-left">标识</th>
-                <th className="px-4 py-3 text-center">商品数</th>
-                <th className="px-4 py-3 text-right">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
+        <div className="admin-card overflow-hidden">
+          <table className="admin-table">
+            <thead><tr>
+              <th style={{ width: 60 }}>ID</th><th>名称</th><th>标识</th>
+              <th style={{ width: 100 }} className="text-center">商品数</th>
+              <th style={{ width: 100 }} className="text-center">操作</th>
+            </tr></thead>
+            <tbody>
               {(categories || []).map((cat) => (
-                <tr key={cat.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-500">{cat.id}</td>
-                  <td className="px-4 py-3">
-                    {editingId === cat.id ? (
-                      <input
-                        type="text"
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                      />
-                    ) : (
-                      cat.name
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {editingId === cat.id ? (
-                      <input
-                        type="text"
-                        value={editSlug}
-                        onChange={(e) => setEditSlug(e.target.value)}
-                        className="w-full rounded border px-2 py-1 text-sm"
-                      />
-                    ) : (
-                      cat.slug
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-center text-gray-500">{cat._count.products}</td>
-                  <td className="px-4 py-3 text-right">
-                    {editingId === cat.id ? (
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => handleUpdate(cat.id)} className="text-green-600 hover:underline">保存</button>
-                        <button onClick={() => setEditingId(null)} className="text-gray-500 hover:underline">取消</button>
-                      </div>
-                    ) : (
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => { setEditingId(cat.id); setEditName(cat.name); setEditSlug(cat.slug); }}
-                          className="text-blue-600 hover:underline"
-                        >
-                          编辑
-                        </button>
-                        <button onClick={() => handleDelete(cat.id)} className="text-red-500 hover:underline">删除</button>
-                      </div>
-                    )}
+                <tr key={cat.id}>
+                  <td className="text-gray-400">{cat.id}</td>
+                  <td className="font-medium text-gray-800">{cat.name}</td>
+                  <td className="font-mono text-xs text-gray-500">{cat.slug}</td>
+                  <td className="text-center"><StatusBadge label={String(cat._count.products)} type="info" /></td>
+                  <td className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button onClick={() => openEdit(cat)} className="rounded p-1.5 text-gray-500 transition-colors hover:text-[#409eff] hover:bg-blue-50" title="编辑"><IconEdit className="h-4 w-4" /></button>
+                      <button onClick={() => handleDelete(cat.id)} className="rounded p-1.5 text-gray-500 transition-colors hover:text-red-500 hover:bg-red-50" title="删除"><IconDelete className="h-4 w-4" /></button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -179,6 +84,25 @@ export default function AdminCategoriesPage() {
           </table>
         </div>
       )}
+
+      <Modal open={modalOpen} title={isEdit ? "编辑分类" : "新增分类"} onClose={() => setModalOpen(false)} width="max-w-md"
+        footer={<div className="flex justify-end gap-2 border-t px-5 py-3">
+          <button onClick={() => setModalOpen(false)} className="btn-default text-sm">取消</button>
+          <button type="submit" form="category-form" disabled={submitting} className="btn-primary text-sm">{submitting ? "提交中..." : isEdit ? "保存" : "创建"}</button>
+        </div>}
+      >
+        <form id="category-form" onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">分类名称</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="input-search w-full" placeholder="如：服装" required />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">标识</label>
+            <input type="text" value={slug} onChange={(e) => setSlug(e.target.value)} className="input-search w-full" placeholder="如：clothing" required />
+            <p className="mt-1 text-xs text-gray-400">URL 中使用，建议英文小写</p>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

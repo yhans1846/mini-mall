@@ -1,51 +1,397 @@
-// src/app/admin/page.tsx — 后台仪表盘
+// src/app/admin/page.tsx — 若依风格数据大屏
 "use client";
 
 import useSWR from "swr";
+import Link from "next/link";
+import StatCard from "@/components/admin/StatCard";
+import StatusBadge from "@/components/admin/StatusBadge";
+import { IconProduct, IconOrder, IconDashboard, IconUser, IconClock, IconMoney, IconTrending, IconWarning, IconCalendar } from "@/components/admin/icons";
+
+interface DashboardData {
+  products: number;
+  orders: number;
+  revenue: number;
+  users: number;
+  todayOrders: number;
+  todayRevenue: number;
+  monthRevenue: number;
+  pendingOrders: number;
+  orderStatusDistribution: { status: string; count: number }[];
+  recentOrders: { id: number; status: string; totalAmount: number; userName: string; itemCount: number; createdAt: string }[];
+  topProducts: { name: string; qty: number; rev: number }[];
+  lowStockProducts: { name: string; stock: number }[];
+  recentUsers: { id: number; name: string; email: string; avatar: string; createdAt: string }[];
+  dailyRevenue: { date: string; amount: number }[];
+  monthlyDailyRevenue: { date: string; amount: number }[];
+}
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: "待付款", PAID: "已支付", SHIPPED: "已发货", COMPLETED: "已完成", CANCELLED: "已取消",
+};
+const STATUS_COLORS: Record<string, string> = {
+  PENDING: "#ffba00", PAID: "#409eff", SHIPPED: "#909399", COMPLETED: "#13ce66", CANCELLED: "#ff4949",
+};
+
+function formatDate(d: string) {
+  return new Date(d).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit" });
+}
+function formatDateTime(d: string) {
+  return new Date(d).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function BarChart({ data, height = 160 }: { data: { date: string; amount: number }[]; height?: number }) {
+  const max = Math.max(...data.map((d) => d.amount), 1);
+  const n = data.length;
+  const pad = { top: 24, bottom: 24 };
+  const drawW = 1000; // viewBox 虚拟宽度，用于精度
+  const drawH = height - pad.top - pad.bottom;
+
+  // 每个数据点的 x 坐标（在 0～1000 范围内均匀分布）
+  const step = n > 1 ? (drawW - 40) / (n - 1) : 0;
+  const offset = n > 1 ? 20 : drawW / 2;
+
+  const points = data.map((d, i) => {
+    const x = offset + i * step;
+    const y = drawH - (d.amount / max) * drawH;
+    return { x, y, label: d.date, amount: d.amount };
+  });
+
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)} ${(pad.top + p.y).toFixed(1)}`).join(" ");
+  // 面积填充路径（折线 + 底部闭合）
+  const areaPath =
+    `${linePath} L${points[n - 1].x.toFixed(1)} ${pad.top + drawH} L${points[0].x.toFixed(1)} ${pad.top + drawH} Z`;
+
+  // Y 轴刻度
+  const yTicks = [0, 0.25, 0.5, 0.75, 1];
+
+  return (
+    <svg viewBox={`0 0 ${drawW} ${height}`} className="w-full" style={{ height }}>
+      {/* Y 轴参考线 */}
+      {yTicks.map((r) => {
+        const y = pad.top + drawH - r * drawH;
+        return (
+          <g key={r}>
+            <line x1={20} y1={y} x2={drawW - 20} y2={y} stroke="#f3f4f6" strokeWidth={1} strokeDasharray="4 2" />
+            <text x={14} y={y + 3} textAnchor="end" className="text-[9px]" fill="#d1d5db">
+              ¥{(max * r).toFixed(0)}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* 面积填充 */}
+      <path d={areaPath} fill="#409eff" fillOpacity={0.08} />
+
+      {/* 柱状图 */}
+      {points.map((p) => {
+        const barW = Math.max(step * 0.35, 8);
+        const barH = Math.max(drawH - p.y, 0);
+        return (
+          <rect
+            key={p.label}
+            x={p.x - barW / 2}
+            y={pad.top + p.y}
+            width={barW}
+            height={barH}
+            rx={2}
+            fill="#409eff"
+            fillOpacity={0.2}
+          />
+        );
+      })}
+
+      {/* 折线 */}
+      <path d={linePath} fill="none" stroke="#409eff" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+
+      {/* 折线端点圆点 */}
+      {points.map((p) => (
+        <circle key={p.label} cx={p.x} cy={pad.top + p.y} r={3.5} fill="#fff" stroke="#409eff" strokeWidth={2} />
+      ))}
+
+      {/* 数据标签 */}
+      {points.map((p) => (
+        <text
+          key={p.label}
+          x={p.x}
+          y={pad.top + p.y - 10}
+          textAnchor="middle"
+          className="text-[9px]"
+          fill="#6b7280"
+          fontWeight={500}
+        >
+          ¥{p.amount.toFixed(0)}
+        </text>
+      ))}
+
+      {/* X 轴日期 */}
+      {points.map((p) => (
+        <text
+          key={p.label}
+          x={p.x}
+          y={height - 3}
+          textAnchor="middle"
+          className="text-[9px]"
+          fill="#9ca3af"
+        >
+          {formatDate(p.label)}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
 export default function AdminDashboard() {
-  const { data: counts, error, isLoading } = useSWR("/api/admin/dashboard", fetcher);
-
-  if (isLoading) {
-    return (
-      <div>
-        <h1 className="mb-6 text-2xl font-bold">仪表盘</h1>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="animate-pulse rounded-lg border bg-white p-6">
-              <div className="mb-2 h-4 w-20 rounded bg-gray-200" />
-              <div className="h-8 w-16 rounded bg-gray-200" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const stats = counts || { products: 0, orders: 0, revenue: 0 };
+  const { data, error, isLoading, mutate } = useSWR<DashboardData>("/api/admin/dashboard", fetcher, {
+    refreshInterval: 60000,
+  });
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">仪表盘</h1>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border bg-white p-6">
-          <p className="text-sm text-gray-500">商品总数</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{stats.products}</p>
-        </div>
-        <div className="rounded-lg border bg-white p-6">
-          <p className="text-sm text-gray-500">订单总数</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{stats.orders}</p>
-        </div>
-        <div className="rounded-lg border bg-white p-6">
-          <p className="text-sm text-gray-500">总销售额</p>
-          <p className="mt-2 text-3xl font-bold text-red-500">
-            ¥{stats.revenue.toFixed(2)}
-          </p>
-        </div>
+      <div className="mb-5 flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-gray-800">仪表盘</h1>
+        <button onClick={() => mutate()} className="btn-default flex items-center gap-1.5 text-sm">
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="23 4 23 10 17 10" />
+            <polyline points="1 20 1 14 7 14" />
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+          </svg>
+          刷新
+        </button>
       </div>
+
+      {isLoading ? (
+        <div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="admin-card animate-pulse p-4"><div className="mb-2 h-4 w-16 rounded bg-gray-200" /><div className="h-7 w-12 rounded bg-gray-200" /></div>
+            ))}
+          </div>
+          <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div className="admin-card animate-pulse p-5"><div className="mb-3 h-5 w-24 rounded bg-gray-200" /><div className="h-32 rounded bg-gray-100" /></div>
+            <div className="admin-card animate-pulse p-5"><div className="mb-3 h-5 w-24 rounded bg-gray-200" /><div className="h-32 rounded bg-gray-100" /></div>
+          </div>
+          <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div className="admin-card animate-pulse p-5"><div className="mb-3 h-5 w-24 rounded bg-gray-200" /><div className="h-32 rounded bg-gray-100" /></div>
+            <div className="admin-card animate-pulse p-5"><div className="mb-3 h-5 w-24 rounded bg-gray-200" /><div className="h-32 rounded bg-gray-100" /></div>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="admin-card p-10 text-center text-sm text-gray-500">加载失败，请刷新重试</div>
+      ) : !data ? null : (
+        <>
+          {/* 顶部统计卡片 */}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
+            <StatCard icon={<IconProduct className="h-6 w-6" />} label="商品总数" value={data.products} color="#409eff" />
+            <StatCard icon={<IconOrder className="h-6 w-6" />} label="订单总数" value={data.orders} color="#13ce66" />
+            <StatCard icon={<IconMoney className="h-6 w-6" />} label="总销售额" value={`¥${data.revenue.toFixed(2)}`} color="#ffba00" />
+            <StatCard icon={<IconUser className="h-6 w-6" />} label="用户总数" value={data.users} color="#409eff" />
+            <StatCard icon={<IconClock className="h-6 w-6" />} label="待处理订单" value={data.pendingOrders} color="#ff4949" />
+            <StatCard icon={<IconTrending className="h-6 w-6" />} label="本月销售额" value={`¥${data.monthRevenue.toFixed(2)}`} color="#13ce66" />
+          </div>
+
+          {/* 今日概览 */}
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="admin-card flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-500">
+                <IconCalendar className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">今日订单</p>
+                <p className="text-lg font-bold text-gray-800">{data.todayOrders}</p>
+              </div>
+            </div>
+            <div className="admin-card flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 text-green-500">
+                <IconMoney className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">今日收入</p>
+                <p className="text-lg font-bold text-gray-800">¥{data.todayRevenue.toFixed(2)}</p>
+              </div>
+            </div>
+            <div className="admin-card flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
+                <IconTrending className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">本月收入</p>
+                <p className="text-lg font-bold text-gray-800">¥{data.monthRevenue.toFixed(2)}</p>
+              </div>
+            </div>
+            <div className="admin-card flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-500">
+                <IconWarning className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">库存预警</p>
+                <p className="text-lg font-bold text-gray-800">{data.lowStockProducts.length}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 图表行 */}
+          <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            {/* 订单状态分布 */}
+            <div className="admin-card p-5">
+              <h3 className="mb-4 text-sm font-semibold text-gray-800">订单状态分布</h3>
+              <div className="space-y-3">
+                {data.orderStatusDistribution.map((item) => {
+                  const total = data.orders || 1;
+                  const pct = total > 0 ? ((item.count / total) * 100).toFixed(1) : "0";
+                  return (
+                    <div key={item.status}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <span className="text-gray-600">{STATUS_LABELS[item.status] || item.status}</span>
+                        <span className="text-gray-400">{item.count} 单（{pct}%）</span>
+                      </div>
+                      <div className="h-2.5 overflow-hidden rounded-full bg-gray-100">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%`, backgroundColor: STATUS_COLORS[item.status] || "#909399" }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 近 7 日销售额趋势 */}
+            <div className="admin-card p-5">
+              <h3 className="mb-4 text-sm font-semibold text-gray-800">近 7 日销售额趋势</h3>
+              <BarChart data={data.dailyRevenue} height={160} />
+            </div>
+          </div>
+
+          {/* 热销商品 + 最近订单 */}
+          <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            {/* 热销商品 Top 5 */}
+            <div className="admin-card">
+              <div className="border-b px-5 py-3 text-sm font-semibold text-gray-800">热销商品 Top 5</div>
+              {data.topProducts.length === 0 ? (
+                <div className="p-8 text-center text-sm text-gray-400">暂无销售数据</div>
+              ) : (
+                <div className="divide-y">
+                  {data.topProducts.map((p, i) => {
+                    const colors = ["#ff6b6b", "#ffba00", "#409eff", "#13ce66", "#909399"];
+                    return (
+                      <div key={i} className="flex items-center gap-3 px-5 py-3">
+                        <span
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                          style={{ backgroundColor: colors[i] || "#909399" }}
+                        >
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 truncate text-sm text-gray-700">{p.name}</div>
+                        <div className="text-right text-xs text-gray-400">
+                          <div>销量 {p.qty}</div>
+                          <div className="font-medium text-gray-600">¥{p.rev.toFixed(2)}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 最近订单 */}
+            <div className="admin-card">
+              <div className="flex items-center justify-between border-b px-5 py-3">
+                <span className="text-sm font-semibold text-gray-800">最近订单</span>
+                <Link href="/admin/orders" className="text-xs" style={{ color: "#409eff" }}>查看全部 →</Link>
+              </div>
+              {data.recentOrders.length === 0 ? (
+                <div className="p-8 text-center text-sm text-gray-400">暂无订单</div>
+              ) : (
+                <div className="divide-y">
+                  {data.recentOrders.map((o) => (
+                    <Link key={o.id} href={`/admin/orders/${o.id}`} className="flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-gray-50">
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate text-sm text-gray-700">#{o.id} {o.userName}</div>
+                        <div className="text-xs text-gray-400">{o.itemCount} 件商品 · {formatDateTime(o.createdAt)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-800">¥{o.totalAmount.toFixed(2)}</div>
+                        <StatusBadge label={STATUS_LABELS[o.status] || o.status} type={
+                          o.status === "COMPLETED" ? "success" : o.status === "PENDING" ? "warning" : o.status === "CANCELLED" ? "danger" : o.status === "PAID" ? "info" : "default"
+                        } />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 库存预警 + 最近用户 */}
+          <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            {/* 库存预警 */}
+            <div className="admin-card">
+              <div className="flex items-center justify-between border-b px-5 py-3">
+                <span className="text-sm font-semibold text-gray-800">库存预警</span>
+                <Link href="/admin/products" className="text-xs" style={{ color: "#409eff" }}>管理商品 →</Link>
+              </div>
+              {data.lowStockProducts.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 p-8 text-sm text-gray-400">
+                  <IconWarning className="h-8 w-8 text-green-300" />
+                  <span>库存充足，暂无预警</span>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {data.lowStockProducts.map((p, i) => (
+                    <div key={i} className="flex items-center justify-between px-5 py-3">
+                      <span className="text-sm text-gray-700">{p.name}</span>
+                      <span className="text-sm font-medium" style={{ color: p.stock === 0 ? "#ff4949" : "#ffba00" }}>
+                        剩余 {p.stock}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 最近注册用户 */}
+            <div className="admin-card">
+              <div className="flex items-center justify-between border-b px-5 py-3">
+                <span className="text-sm font-semibold text-gray-800">最近注册</span>
+                <Link href="/admin/users" className="text-xs" style={{ color: "#409eff" }}>查看全部 →</Link>
+              </div>
+              {data.recentUsers.length === 0 ? (
+                <div className="p-8 text-center text-sm text-gray-400">暂无用户</div>
+              ) : (
+                <div className="divide-y">
+                  {data.recentUsers.map((u) => (
+                    <div key={u.id} className="flex items-center gap-3 px-5 py-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-gray-100 text-gray-400">
+                        {u.avatar ? (
+                          <img src={u.avatar} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <IconUser className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate text-sm text-gray-700">{u.name}</div>
+                        <div className="truncate text-xs text-gray-400">{u.email}</div>
+                      </div>
+                      <span className="shrink-0 text-xs text-gray-400">{formatDateTime(u.createdAt)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 当月每日销售趋势 (月度柱状图) */}
+          <div className="mt-5">
+            <div className="admin-card p-5">
+              <h3 className="mb-4 text-sm font-semibold text-gray-800">本月每日销售额</h3>
+              <BarChart data={data.monthlyDailyRevenue} height={180} />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

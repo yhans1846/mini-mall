@@ -20,6 +20,36 @@ async function checkAdmin() {
   return user?.role === "ADMIN";
 }
 
+/** 获取订单详情（管理员视角，不校验归属） */
+export async function GET(_request: NextRequest, { params }: Params) {
+  if (!(await checkAdmin())) {
+    return NextResponse.json({ error: "无权限" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const orderId = parseInt(id, 10);
+
+  if (isNaN(orderId)) {
+    return NextResponse.json({ error: "无效的订单 ID" }, { status: 400 });
+  }
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+      items: {
+        include: { product: { select: { id: true, name: true, imageUrl: true } } },
+      },
+    },
+  });
+
+  if (!order) {
+    return NextResponse.json({ error: "订单不存在" }, { status: 404 });
+  }
+
+  return NextResponse.json(order);
+}
+
 /** 修改订单状态 */
 export async function PATCH(request: NextRequest, { params }: Params) {
   if (!(await checkAdmin())) {

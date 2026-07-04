@@ -10,3 +10,121 @@ body {
   color: var(--foreground);
   font-family: system-ui, -apple-system, sans-serif;
 }
+
+/* ===== RuoYi Admin 风格配置 ===== */
+@theme {
+  --color-sidebar-bg: #1a1f2e;
+  --color-sidebar-sub-bg: #141824;
+  --color-sidebar-text: #bfcbd9;
+  --color-sidebar-active: #ffffff;
+  --color-primary: #409eff;
+  --color-primary-dark: #3a8ee6;
+  --color-success: #13ce66;
+  --color-warning: #ffba00;
+  --color-danger: #ff4949;
+}
+
+/* Admin 卡片 */
+.admin-card {
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #ebeef5;
+}
+
+/* Admin 表格 */
+.admin-table {
+  width: 100%;
+  font-size: 0.875rem;
+}
+.admin-table thead tr {
+  border-bottom: 1px solid #ebeef5;
+  background-color: #f5f7fa;
+}
+.admin-table thead th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 500;
+  color: #606266;
+}
+.admin-table tbody tr {
+  border-bottom: 1px solid #ebeef5;
+  transition: background-color 0.15s;
+}
+.admin-table tbody tr:hover {
+  background-color: #f5f7fa;
+}
+.admin-table tbody td {
+  padding: 0.75rem 1rem;
+}
+
+/* 按钮 */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #ffffff;
+  background-color: #409eff;
+  transition: background-color 0.15s;
+  cursor: pointer;
+  border: none;
+}
+.btn-primary:hover {
+  background-color: #3a8ee6;
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-default {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.25rem;
+  border: 1px solid #ebeef5;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #606266;
+  background-color: #ffffff;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+.btn-default:hover {
+  border-color: #409eff;
+  color: #409eff;
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #ffffff;
+  background-color: #ff4949;
+  transition: opacity 0.15s;
+  cursor: pointer;
+  border: none;
+}
+.btn-danger:hover {
+  opacity: 0.85;
+}
+
+/* 搜索输入框 */
+.input-search {
+  border-radius: 0.25rem;
+  border: 1px solid #dcdfe6;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+  background-color: #ffffff;
+}
+.input-search:focus {
+  border-color: #409eff;
+}
