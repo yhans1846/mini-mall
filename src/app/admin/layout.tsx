@@ -1,9 +1,12 @@
-// src/app/admin/layout.tsx — 若依风格三栏布局
+// src/app/admin/layout.tsx — 三栏布局（SWRConfig + Toaster + 快捷键）
 import type { Metadata } from "next";
+import { SWRConfig } from "swr";
+import { swrConfig } from "@/lib/swr-config";
 import { SidebarProvider } from "@/components/admin/SidebarContext";
 import Sidebar from "@/components/admin/Sidebar";
 import Navbar from "@/components/admin/Navbar";
 import Toaster from "@/components/admin/Toaster";
+import KeyboardShortcuts from "./KeyboardShortcuts";
 import AdminGuard from "./AdminGuard";
 
 export const metadata: Metadata = {
@@ -18,16 +21,19 @@ export default function AdminLayout({
 }) {
   return (
     <AdminGuard>
-      <SidebarProvider>
-        <div className="flex min-h-screen" style={{ backgroundColor: "#f0f2f5" }}>
-          <Sidebar />
-          <div className="flex flex-1 flex-col">
-            <Navbar />
-            <main className="flex-1 p-5">{children}</main>
+      <SWRConfig value={swrConfig}>
+        <SidebarProvider>
+          <div className="flex min-h-screen" style={{ backgroundColor: "#f0f2f5" }}>
+            <Sidebar />
+            <div className="flex flex-1 flex-col">
+              <Navbar />
+              <main className="flex-1 p-5">{children}</main>
+            </div>
           </div>
-        </div>
-        <Toaster />
-      </SidebarProvider>
+          <Toaster />
+          <KeyboardShortcuts />
+        </SidebarProvider>
+      </SWRConfig>
     </AdminGuard>
   );
 }

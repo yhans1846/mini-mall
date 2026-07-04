@@ -1,4 +1,4 @@
-// src/components/admin/Modal.tsx — 通用 Modal 弹窗
+// src/components/admin/Modal.tsx — 通用 Modal（带进场动画 + body scroll lock）
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -22,7 +22,12 @@ export default function Modal({ open, title, children, onClose, footer, width = 
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    // 锁定 body 滚动
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handler);
+      document.body.style.overflow = "";
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -30,12 +35,16 @@ export default function Modal({ open, title, children, onClose, footer, width = 
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 transition-opacity duration-200"
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
     >
-      <div className={`${width} mx-4 w-full rounded-lg bg-white shadow-xl`}>
+      <div
+        className={`${width} mx-4 w-full animate-[fadeScaleIn_0.2s_ease-out] rounded-lg bg-white shadow-xl`}
+        style={{ animation: "fadeScaleIn 0.2s ease-out" }}
+      >
+        <style>{`@keyframes fadeScaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }`}</style>
         {/* 标题栏 */}
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h3 className="text-base font-semibold text-gray-800">{title}</h3>

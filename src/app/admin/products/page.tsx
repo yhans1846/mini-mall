@@ -1,14 +1,19 @@
 // src/app/admin/products/page.tsx — 商品管理（批量操作 + Modal CRUD）
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 import Modal from "@/components/admin/Modal";
 import Pagination from "@/components/admin/Pagination";
 import StatusBadge from "@/components/admin/StatusBadge";
 import TableCheckbox from "@/components/admin/TableCheckbox";
+import LoadingSkeleton from "@/components/admin/LoadingSkeleton";
+import EmptyState from "@/components/admin/EmptyState";
+import ErrorState from "@/components/admin/ErrorState";
 import { useConfirm } from "@/components/admin/ConfirmDialog";
+import { useDebounce } from "@/hooks/useDebounce";
+import { exportToCSV } from "@/lib/export";
 import { IconAdd, IconEdit, IconDelete, IconSearch, IconRefresh } from "@/components/admin/icons";
 
 interface AdminProduct {
@@ -45,9 +50,20 @@ export default function AdminProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const { confirm, ConfirmDialog } = useConfirm();
+  const debouncedSearch = useDebounce(search);
+
+  // Ctrl+K 聚焦搜索
+  useEffect(() => {
+    const handler = () => {
+      const input = document.querySelector<HTMLInputElement>('[data-search="products"]');
+      input?.focus();
+    };
+    document.addEventListener("admin:focus-search", handler);
+    return () => document.removeEventListener("admin:focus-search", handler);
+  }, []);
 
   const params = new URLSearchParams();
-  if (search) params.set("search", search);
+  if (debouncedSearch) params.set("search", debouncedSearch);
   params.set("page", String(page));
   if (categoryFilter) params.set("categoryId", categoryFilter);
   if (statusFilter) params.set("status", statusFilter);
@@ -153,6 +169,22 @@ export default function AdminProductsPage() {
 
   const clearSelection = () => setSelectedIds(new Set());
 
+  const handleExport = () => {
+    exportToCSV(
+      products.map((p) => ({
+        id: p.id, name: p.name, 分类: p.category.name,
+        价格: `¥${p.price.toFixed(2)}`, 库存: p.stock,
+        状态: p.isPublished ? "已上架" : "已下架",
+      })),
+      [
+        { key: "id", label: "ID" }, { key: "name", label: "名称" },
+        { key: "分类", label: "分类" }, { key: "价格", label: "价格" },
+        { key: "库存", label: "库存" }, { key: "状态", label: "状态" },
+      ],
+      `商品列表_${new Date().toISOString().slice(0, 10)}`,
+    );
+  };
+
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
@@ -165,7 +197,7 @@ export default function AdminProductsPage() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
             <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索商品名称..." className="input-search w-56 pl-9" />
+            <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="搜索商品名称... (Ctrl+K)" className="input-search w-56 pl-9" data-search="products" />
           </div>
           <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }} className="input-search w-40">
             <option value="">全部分类</option>
@@ -177,6 +209,12 @@ export default function AdminProductsPage() {
             <option value="unpublished">已下架</option>
           </select>
           <button onClick={() => mutate()} className="btn-default" title="刷新"><IconRefresh className="h-4 w-4" /></button>
+          <button onClick={handleExport} className="btn-default text-sm" title="导出CSV">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            导出
+          </button>
         </div>
       </div>
 
@@ -195,11 +233,11 @@ export default function AdminProductsPage() {
 
       {/* 表格 */}
       {isLoading ? (
-        <div className="admin-card animate-pulse p-6">{Array.from({ length: 8 }).map((_, i) => (<div key={i} className="mb-3 h-8 rounded bg-gray-100" />))}</div>
+        <LoadingSkeleton variant="table" rows={8} />
       ) : error ? (
-        <div className="admin-card p-6 text-center text-sm text-gray-500">加载失败</div>
+        <ErrorState message="加载失败" onRetry={() => mutate()} />
       ) : products.length === 0 ? (
-        <div className="admin-card p-10 text-center text-sm text-gray-400">暂无商品</div>
+        <EmptyState title="暂无商品" description="点击右上角新增按钮添加第一个商品" action={{ label: "新增商品", onClick: openCreate }} />
       ) : (
         <div className="admin-card overflow-hidden">
           <table className="admin-table">

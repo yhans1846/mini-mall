@@ -1,10 +1,11 @@
-// src/components/admin/Navbar.tsx — 顶部导航栏（面包屑 + 用户信息）
+// src/components/admin/Navbar.tsx — 顶部导航栏（动态面包屑 + 用户信息）
 "use client";
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useSidebar } from "./SidebarContext";
-import { IconHamburger, IconUser, IconLogout } from "./icons";
+import { IconHamburger, IconUser, IconLogout, IconHome } from "./icons";
 
 const BREADCRUMB_MAP: Record<string, string> = {
   "/admin": "仪表盘",
@@ -15,20 +16,20 @@ const BREADCRUMB_MAP: Record<string, string> = {
   "/admin/users": "用户管理",
 };
 
-/** 根据 pathname 自动生成面包屑 */
+/** 根据 pathname 自动生成面包屑（每段可点击） */
 function useBreadcrumb() {
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
-  const crumbs: { label: string }[] = [];
+  const crumbs: { label: string; href?: string }[] = [];
 
-  crumbs.push({ label: "首页" });
+  crumbs.push({ label: "首页", href: "/admin" });
 
   let current = "";
   for (const seg of segments) {
     if (seg === "admin") continue;
     current = `/admin/${seg}`;
     if (BREADCRUMB_MAP[current]) {
-      crumbs.push({ label: BREADCRUMB_MAP[current] });
+      crumbs.push({ label: BREADCRUMB_MAP[current], href: current });
     } else {
       const parentLabel = crumbs[crumbs.length - 1]?.label || "详情";
       if (parentLabel === "订单管理") {
@@ -89,9 +90,17 @@ export default function Navbar() {
           {crumbs.map((crumb, i) => (
             <span key={i} className="flex items-center gap-1">
               {i > 0 && <span className="mx-1 text-gray-300">/</span>}
-              <span className={i === crumbs.length - 1 ? "font-medium text-gray-800" : ""}>
-                {crumb.label}
-              </span>
+              {crumb.href && i < crumbs.length - 1 ? (
+                <Link href={crumb.href} className="flex items-center gap-1 transition-colors hover:text-[#409eff]">
+                  {i === 0 && <IconHome className="h-3.5 w-3.5" />}
+                  {crumb.label}
+                </Link>
+              ) : (
+                <span className={i === 0 ? "flex items-center gap-1" : "font-medium text-gray-800"}>
+                  {i === 0 && <IconHome className="h-3.5 w-3.5" />}
+                  {crumb.label}
+                </span>
+              )}
             </span>
           ))}
         </nav>

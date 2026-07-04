@@ -1,11 +1,16 @@
 // src/app/admin/orders/page.tsx — 订单管理（支持状态/日期筛选）
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import Pagination from "@/components/admin/Pagination";
 import StatusBadge from "@/components/admin/StatusBadge";
+import LoadingSkeleton from "@/components/admin/LoadingSkeleton";
+import EmptyState from "@/components/admin/EmptyState";
+import ErrorState from "@/components/admin/ErrorState";
+import { useDebounce } from "@/hooks/useDebounce";
+import { exportToCSV } from "@/lib/export";
 import { IconSearch, IconRefresh } from "@/components/admin/icons";
 
 const STATUS_OPTIONS = [
@@ -50,13 +55,14 @@ export default function AdminOrdersPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search);
 
   const params = new URLSearchParams();
   params.set("page", String(page));
   if (statusFilter) params.set("status", statusFilter);
   if (startDate) params.set("startDate", startDate);
   if (endDate) params.set("endDate", endDate);
-  if (search) params.set("search", search);
+  if (debouncedSearch) params.set("search", debouncedSearch);
 
   const { data, error, isLoading, mutate } = useSWR(
     `/api/admin/orders?${params.toString()}`,
@@ -66,6 +72,35 @@ export default function AdminOrdersPage() {
   const orders: OrderItem[] = data?.orders || [];
   const total = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 1;
+
+  // Ctrl+K 聚焦搜索
+  useEffect(() => {
+    const handler = () => {
+      const input = document.querySelector<HTMLInputElement>('[data-search="orders"]');
+      input?.focus();
+    };
+    document.addEventListener("admin:focus-search", handler);
+    return () => document.removeEventListener("admin:focus-search", handler);
+  }, []);
+
+  const handleExport = () => {
+    const data = orders.map((o) => ({
+      订单号: o.id,
+      用户: o.user.name,
+      商品: o.items.map((i) => i.product.name).join("、"),
+      金额: `¥${o.totalAmount.toFixed(2)}`,
+      状态: STATUS_MAP[o.status]?.label || o.status,
+      时间: new Date(o.createdAt).toLocaleString("zh-CN"),
+    }));
+    exportToCSV(data, [
+      { key: "订单号", label: "订单号" },
+      { key: "用户", label: "用户" },
+      { key: "商品", label: "商品" },
+      { key: "金额", label: "金额" },
+      { key: "状态", label: "状态" },
+      { key: "时间", label: "时间" },
+    ], `订单列表_${new Date().toISOString().slice(0, 10)}`);
+  };
 
   const handleReset = () => {
     setStatusFilter("");
@@ -114,8 +149,9 @@ export default function AdminOrdersPage() {
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder="订单号 / 用户名..."
+              placeholder="订单号 / 用户名... (Ctrl+K)"
               className="input-search w-48 pl-9"
+              data-search="orders"
             />
           </div>
           {(statusFilter || startDate || endDate || search) && (
@@ -124,18 +160,22 @@ export default function AdminOrdersPage() {
           <button onClick={() => mutate()} className="btn-default" title="刷新">
             <IconRefresh className="h-4 w-4" />
           </button>
+          <button onClick={handleExport} className="btn-default text-sm" title="导出CSV">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            导出
+          </button>
         </div>
       </div>
 
       {/* 表格 */}
       {isLoading ? (
-        <div className="admin-card animate-pulse p-6">
-          {Array.from({ length: 5 }).map((_, i) => (<div key={i} className="mb-3 h-8 rounded bg-gray-100" />))}
-        </div>
+        <LoadingSkeleton variant="table" rows={5} />
       ) : error ? (
-        <div className="admin-card p-10 text-center text-sm text-gray-500">加载失败，请刷新重试</div>
+        <ErrorState message="加载失败" onRetry={() => mutate()} />
       ) : orders.length === 0 ? (
-        <div className="admin-card p-10 text-center text-sm text-gray-400">暂无订单</div>
+        <EmptyState title="暂无订单" description="还没有任何订单记录" />
       ) : (
         <div className="admin-card overflow-hidden">
           <table className="admin-table">

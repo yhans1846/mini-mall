@@ -1,10 +1,15 @@
-// src/app/admin/users/page.tsx — 若依风格用户管理
+// src/app/admin/users/page.tsx — 用户管理（搜索防抖 + 导出 + 统一状态组件）
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import Pagination from "@/components/admin/Pagination";
 import StatusBadge from "@/components/admin/StatusBadge";
+import LoadingSkeleton from "@/components/admin/LoadingSkeleton";
+import EmptyState from "@/components/admin/EmptyState";
+import ErrorState from "@/components/admin/ErrorState";
+import { useDebounce } from "@/hooks/useDebounce";
+import { exportToCSV } from "@/lib/export";
 import { IconSearch, IconRefresh, IconUser } from "@/components/admin/icons";
 
 interface AdminUser {
@@ -32,9 +37,10 @@ const LEVEL_NAMES = ["普通会员", "心悦1级", "心悦2级", "心悦3级"];
 export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const debouncedSearch = useDebounce(search);
 
   const params = new URLSearchParams();
-  if (search) params.set("search", search);
+  if (debouncedSearch) params.set("search", debouncedSearch);
   params.set("page", String(page));
 
   const { data, error, isLoading, mutate } = useSWR<PageData>(
@@ -42,6 +48,29 @@ export default function AdminUsersPage() {
   );
 
   const users = data?.users || [];
+
+  // Ctrl+K 聚焦搜索
+  useEffect(() => {
+    const handler = () => {
+      const input = document.querySelector<HTMLInputElement>('[data-search="users"]');
+      input?.focus();
+    };
+    document.addEventListener("admin:focus-search", handler);
+    return () => document.removeEventListener("admin:focus-search", handler);
+  }, []);
+
+  const handleExport = () => {
+    exportToCSV(
+      users.map((u) => ({
+        id: u.id, name: u.name, email: u.email,
+        会员等级: LEVEL_NAMES[u.membershipLevel] || `Lv${u.membershipLevel}`,
+        累计消费: `¥${u.totalSpent.toFixed(2)}`,
+        注册时间: new Date(u.createdAt).toLocaleString("zh-CN"),
+      })),
+      [{ key: "id", label: "ID" }, { key: "name", label: "名称" }, { key: "email", label: "邮箱" }, { key: "会员等级", label: "会员等级" }, { key: "累计消费", label: "累计消费" }, { key: "注册时间", label: "注册时间" }],
+      `用户列表_${new Date().toISOString().slice(0, 10)}`,
+    );
+  };
 
   return (
     <div>
@@ -57,24 +86,29 @@ export default function AdminUsersPage() {
             <input
               type="text" value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder="搜索用户名称或邮箱..."
+              placeholder="搜索用户名称或邮箱... (Ctrl+K)"
               className="input-search w-64 pl-9"
+              data-search="users"
             />
           </div>
           <button onClick={() => mutate()} className="btn-default" title="刷新">
             <IconRefresh className="h-4 w-4" />
           </button>
+          <button onClick={handleExport} className="btn-default text-sm" title="导出CSV">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            导出
+          </button>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="admin-card animate-pulse p-6">
-          {Array.from({ length: 8 }).map((_, i) => (<div key={i} className="mb-3 h-8 rounded bg-gray-100" />))}
-        </div>
+        <LoadingSkeleton variant="table" rows={8} />
       ) : error ? (
-        <div className="admin-card p-6 text-center text-sm text-gray-500">加载失败</div>
+        <ErrorState message="加载失败" onRetry={() => mutate()} />
       ) : users.length === 0 ? (
-        <div className="admin-card p-10 text-center text-sm text-gray-400">暂无用户</div>
+        <EmptyState icon={<IconUser className="h-10 w-10" />} title="暂无用户" description="还没有用户注册" />
       ) : (
         <div className="admin-card overflow-hidden">
           <table className="admin-table">

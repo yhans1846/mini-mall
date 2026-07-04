@@ -6,6 +6,8 @@ import useSWR from "swr";
 import { toast } from "sonner";
 import Modal from "@/components/admin/Modal";
 import StatusBadge from "@/components/admin/StatusBadge";
+import LoadingSkeleton from "@/components/admin/LoadingSkeleton";
+import ErrorState from "@/components/admin/ErrorState";
 import { useConfirm } from "@/components/admin/ConfirmDialog";
 import { IconAdd, IconEdit, IconDelete } from "@/components/admin/icons";
 
@@ -58,9 +60,9 @@ export default function AdminCategoriesPage() {
       </div>
 
       {isLoading ? (
-        <div className="admin-card animate-pulse p-6">{Array.from({ length: 4 }).map((_, i) => (<div key={i} className="mb-3 h-10 rounded bg-gray-100" />))}</div>
+        <LoadingSkeleton variant="table" rows={4} />
       ) : error ? (
-        <div className="admin-card p-6 text-center text-sm text-gray-500">加载失败</div>
+        <ErrorState message="加载失败" onRetry={() => mutate()} />
       ) : (
         <div className="admin-card overflow-hidden">
           <table className="admin-table">
