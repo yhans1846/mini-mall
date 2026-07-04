@@ -64,7 +64,7 @@ export default function FlashSale() {
               </span>
 
               {/* 商品信息（左） */}
-              <div className="min-w-0 flex-1 pl-1">
+              <div className="min-w-0 flex-1 pl-7">
                 <p className="text-sm font-medium text-gray-800 group-hover:text-red-500 transition-colors leading-tight">
                   {fs.product.name}
                 </p>

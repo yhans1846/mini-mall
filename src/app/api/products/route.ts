@@ -106,6 +106,7 @@ export async function GET(request: NextRequest) {
       pageSize,
       totalPages,
     };
+    return NextResponse.json(response);
   } catch {
     return NextResponse.json(
       { error: "获取商品列表失败" },
