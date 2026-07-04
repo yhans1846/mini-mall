@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import useSWR from "swr";
+import { toast } from "sonner";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 
@@ -90,12 +91,12 @@ export default function OrderDetailPage() {
       const res = await fetch(`/api/orders/${order.id}`, { method: "PUT" });
       if (!res.ok) {
         const err = await res.json();
-        alert(err.error || "支付失败");
+        toast.error(err.error || "支付失败");
+        setPaying(false);
         return;
       }
       mutate();
-    } catch {
-      alert("支付失败，请重试");
+    } catch { toast.error("支付失败，请重试");
     } finally {
       setPaying(false);
     }

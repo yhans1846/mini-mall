@@ -5,6 +5,7 @@ import { useState, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
+import { toast } from "sonner";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 
@@ -59,8 +60,8 @@ export default function MemberPage() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) { alert("请选择图片文件"); return; }
-    if (file.size > 5 * 1024 * 1024) { alert("图片大小不能超过 5MB"); return; }
+    if (!file.type.startsWith("image/")) { toast.error("请选择图片文件"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("图片大小不能超过 5MB"); return; }
     const reader = new FileReader();
     reader.onload = () => {
       setRawImage(reader.result as string);
@@ -110,7 +111,7 @@ export default function MemberPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: base64 }),
       });
-      if (!res.ok) { const err = await res.json(); alert(err.error || "上传失败"); return; }
+      if (!res.ok) { const err = await res.json(); toast.error(err.error || "上传失败"); return; }
       setRawImage(null);
       mutate();
       updateSession();
@@ -136,7 +137,7 @@ export default function MemberPage() {
       setShowNickname(false);
       mutate();
       updateSession();
-    } else { const err = await res.json(); alert(err.error || "修改失败"); }
+    } else { const err = await res.json(); toast.error(err.error || "修改失败"); }
     setNicknameSubmitting(false);
   };
 
@@ -152,7 +153,7 @@ export default function MemberPage() {
       body: JSON.stringify({ oldPassword, newPassword }),
     });
     if (res.ok) {
-      alert("密码修改成功");
+      toast.success("密码修改成功");
       setShowPassword(false);
       setOldPassword("");
       setNewPassword("");

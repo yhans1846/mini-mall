@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import useSWR from "swr";
+import { toast } from "sonner";
 import Link from "next/link";
 
 interface Address {
@@ -50,7 +51,7 @@ export default function AddressPage() {
     const method = editingId ? "PUT" : "POST";
     const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
     if (res.ok) { resetForm(); mutate(); }
-    else { const err = await res.json(); alert(err.error || "操作失败"); }
+    else { const err = await res.json(); toast.error(err.error || "操作失败"); }
     setSubmitting(false);
   };
 
