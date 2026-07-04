@@ -23,6 +23,35 @@ function randomDate(start, end) {
   return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 }
 
+/** 从列表随机取 N 项（不重复） */
+function pickN(arr, n) {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+}
+
+// ==================== 商品名称生成工厂 ====================
+const BRANDS = ["优品", "极客", "北欧时光", "自然之选", "悦享", "智造", "简约派", "轻奢", "田园风", "酷玩"];
+const ADJECTIVES = {
+  clothing: ["纯棉", "弹力", "修身", "宽松", "复古", "简约", "时尚", "轻薄", "加厚", "印花", "拼接", "条纹"],
+  electronics: ["智能", "便携", "高速", "超清", "降噪", "无线", "迷你", "大容量", "长续航", "快充", "高清", "多功能"],
+  home: ["北欧风", "简约", "环保", "创意", "静音", "大容量", "防滑", "可折叠", "保温", "收纳", "智能", "节能"],
+  food: ["有机", "精选", "纯天然", "进口", "手工", "零添加", "低糖", "高蛋白", "原味", "特级", "新鲜", "古法"],
+  books: ["畅销", "经典", "图解", "入门", "进阶", "精装", "珍藏版", "全新修订", "实用", "权威", "趣味", "深度"],
+  sports: ["专业", "防滑", "轻量", "透气", "耐用", "可折叠", "多功能", "减震", "稳定", "速干", "高弹", "耐磨"],
+  beauty: ["温和", "补水", "修护", "紧致", "清爽", "滋养", "亮肤", "保湿", "控油", "舒缓", "淡斑", "抗皱"],
+  baby: ["安全", "环保", "柔软", "益智", "启蒙", "防摔", "可啃咬", "易清洗", "轻便", "多功能", "早教", "可爱"],
+};
+const NOUNS = {
+  clothing: ["T恤", "衬衫", "外套", "裤子", "裙子", "卫衣", "夹克", "风衣", "短裤", "马甲", "针织衫", "运动套装"],
+  electronics: ["耳机", "充电器", "数据线", "蓝牙音箱", "移动电源", "鼠标", "键盘", "摄像头", "支架", "保护壳", "转换器", "硬盘盒"],
+  home: ["抱枕", "地毯", "收纳盒", "置物架", "牙刷架", "毛巾", "浴巾", "桌布", "花瓶", "相框", "香薰", "靠垫"],
+  food: ["咖啡", "茶叶", "坚果", "果干", "麦片", "蜂蜜", "巧克力", "饼干", "薯片", "牛肉干", "酸奶", "果酱"],
+  books: ["入门指南", "实战教程", "思维导图", "案例集", "原理剖析", "算法详解", "架构设计", "编程之道"],
+  sports: ["护腕", "运动毛巾", "跳绳", "弹力带", "护膝", "髌骨带", "运动水壶", "腕带", "握力器", "臂包", "发带", "运动袜"],
+  beauty: ["面膜", "精华液", "面霜", "爽肤水", "眼霜", "唇膏", "卸妆水", "身体乳", "洗发水", "护发素", "沐浴露", "磨砂膏"],
+  baby: ["奶瓶", "围兜", "婴儿帽", "睡袋", "安抚巾", "咬咬胶", "布书", "摇铃", "婴儿袜", "隔尿垫", "吸管杯", "辅食碗"],
+};
+
 /** 格式化日期为 YYYY-MM-DD HH:mm:ss 字符串 */
 function fmtDate(d) {
   const pad = (n) => String(n).padStart(2, "0");
@@ -107,13 +136,64 @@ async function main() {
     { name: "儿童益智积木 100粒", desc: "大颗粒安全材质，认知形状颜色，启蒙教育", price: 79, stock: 200, cat: "baby" },
   ];
 
+  // 用商品名称工厂生成剩余商品（35~234，对应 product_35.jpg ~ product_234.jpg）
+  const CATEGORY_SLUGS = ["clothing", "electronics", "home", "food", "books", "sports", "beauty", "baby"];
+  const priceRange = {
+    clothing: [49, 699], electronics: [19, 1599], home: [19, 399],
+    food: [9, 199], books: [15, 99], sports: [29, 499],
+    beauty: [19, 299], baby: [19, 899],
+  };
+  const DESC_TEMPLATES = [
+    (n, adj) => `优质${adj}材料，精湛工艺，${n}首选`,
+    (n, adj) => `${adj}设计，${n}中的经典之选，品质保证`,
+    (n, adj) => `${adj}款式，舒适实用，${n}必备良品`,
+    (n, adj) => `${adj}体验，超高性价比，${n}热卖爆款`,
+    (n, adj) => `${adj}材质，${n}好物，口碑推荐`,
+    (n, adj) => `${adj}全新升级，${n}爆款回归，限时特惠`,
+    (n, adj) => `甄选${adj}原料，${n}精品，品质生活从这里开始`,
+    (n, adj) => `${adj}力作，${n}新选择，满足你的所有期待`,
+  ];
+
+  const counts = {};
+  for (const c of CATEGORY_SLUGS) counts[c] = 0;
+  for (const p of productDefs) counts[p.cat]++;
+
+  const usedNames = new Set(productDefs.map((p) => p.name));
+  const totalNeeded = 234 - productDefs.length; // 200
+  const generatedDefs = [];
+  let attempts = 0;
+
+  while (generatedDefs.length < totalNeeded && attempts < 5000) {
+    attempts++;
+    const cat = CATEGORY_SLUGS.sort((a, b) => counts[a] - counts[b])[0];
+    const adj = pick(ADJECTIVES[cat]);
+    const noun = pick(NOUNS[cat]);
+    const brand = pick(BRANDS);
+    const name = `${brand}${adj}${noun}`;
+
+    if (usedNames.has(name)) continue;
+    usedNames.add(name);
+
+    const [minP, maxP] = priceRange[cat];
+    const price = Math.round((minP + Math.random() * (maxP - minP)) / 5) * 5;
+    const stock = randInt(20, 500);
+    const desc = pick(DESC_TEMPLATES)(noun, adj);
+
+    counts[cat]++;
+    generatedDefs.push({ name, desc, price, stock, cat });
+  }
+
+  productDefs.push(...generatedDefs);
+
   const products = [];
   for (let i = 0; i < productDefs.length; i++) {
     const p = productDefs[i];
-    // 部分商品 isPublished: false，模拟下架商品
-    const published = !(i === 4 || i === 10 || i === 19); // 少量商品下架
-    // 创建时间分布在过去 3 个月
-    const createdAt = randomDate(MONTHS_AGO_3, NOW);
+    // 少量商品下架（前 34 个中的 3 个 + 随机 5% 生成商品）
+    const published = i < 34
+      ? !(i === 4 || i === 10 || i === 19)
+      : Math.random() > 0.05;
+    // 创建时间分布在过去 6 个月（编号越早的商品创建时间越早）
+    const createdAt = new Date(MONTHS_AGO_6.getTime() + (i / productDefs.length) * (NOW.getTime() - MONTHS_AGO_6.getTime()) + (Math.random() - 0.5) * 7 * 86400000);
     const product = await prisma.product.create({
       data: {
         name: p.name,
@@ -144,31 +224,37 @@ async function main() {
   });
   console.log(`  ✅ 管理员: admin@example.com`);
 
-  // 批量创建 MallUser — 20 个常规用户 + 保留测试用户的 email 不变
+  // 批量创建 MallUser — 60 个用户（保留测试用户的 email 不变）
+  const SURNAMES = ["张", "李", "王", "赵", "陈", "刘", "杨", "黄", "吴", "周", "郑", "孙", "冯", "唐", "宋", "林", "沈", "秦", "顾", "许", "何", "郭", "高", "罗", "梁", "谢", "韩", "苏", "叶", "魏"];
+  const GIVEN_NAMES = ["伟", "芳", "娜", "秀英", "敏", "静", "丽", "强", "磊", "军", "洋", "勇", "艳", "杰", "娟", "涛", "明", "超", "秀兰", "霞", "平", "刚", "桂英", "文", "华", "飞", "玉兰", "斌", "玲", "国强"];
+
   const userDefs = [
     // 保留原来的测试用户（确保现有测试依旧可用）
     { email: "user@example.com", name: "张三", level: 0, spent: 0 },
     { email: "vip1@example.com", name: "李四", level: 1, spent: 8000 },
     { email: "vip2@example.com", name: "王五", level: 2, spent: 80000 },
     { email: "vip3@example.com", name: "赵六", level: 3, spent: 800000 },
-    // 新增随机用户
-    { email: "alice@example.com", name: "陈小美", level: 0, spent: 0 },
-    { email: "bob@example.com", name: "刘大力", level: 0, spent: 0 },
-    { email: "carol@example.com", name: "周雨晴", level: 1, spent: 12000 },
-    { email: "dave@example.com", name: "吴明远", level: 0, spent: 3500 },
-    { email: "eve@example.com", name: "林小婉", level: 2, spent: 95000 },
-    { email: "frank@example.com", name: "黄大鹏", level: 0, spent: 600 },
-    { email: "grace@example.com", name: "杨小洁", level: 1, spent: 15000 },
-    { email: "henry@example.com", name: "郑伟强", level: 0, spent: 3200 },
-    { email: "iris@example.com", name: "唐雪儿", level: 1, spent: 9500 },
-    { email: "jack@example.com", name: "孙浩然", level: 0, spent: 800 },
-    { email: "kate@example.com", name: "冯美琪", level: 3, spent: 900000 },
-    { email: "leo@example.com", name: "宋佳明", level: 0, spent: 1800 },
-    { email: "maya@example.com", name: "秦思思", level: 1, spent: 22000 },
-    { email: "nick@example.com", name: "顾一凡", level: 0, spent: 4200 },
-    { email: "olivia@example.com", name: "沈白露", level: 2, spent: 120000 },
-    { email: "paul@example.com", name: "常远", level: 0, spent: 0 },
   ];
+
+  // 生成 56 个额外用户（共 60 个）
+  const existingEmails = new Set(userDefs.map((u) => u.email));
+  for (let i = 0; userDefs.length < 60; i++) {
+    const surname = pick(SURNAMES);
+    const given = pick(GIVEN_NAMES);
+    const name = surname + given;
+    const email = `user${100 + i}@example.com`;
+    if (existingEmails.has(email)) continue;
+    existingEmails.add(email);
+
+    // 随机分配等级（0: 60%, 1: 20%, 2: 12%, 3: 8%）
+    const r = Math.random();
+    const level = r < 0.6 ? 0 : r < 0.8 ? 1 : r < 0.92 ? 2 : 3;
+    const spentThresholds = [0, 8000, 80000, 800000];
+    const spent = level === 0
+      ? randInt(0, 7000)
+      : randInt(spentThresholds[level], spentThresholds[level] * 3);
+    userDefs.push({ email, name, level, spent });
+  }
 
   const users = [];
   for (const u of userDefs) {
@@ -357,18 +443,9 @@ async function main() {
   // ==================== 6. 秒杀活动 ====================
   console.log("\n━━━ 6. 秒杀活动 ━━━");
 
-  // 为部分商品创建秒杀活动
-  const flashSaleProducts = [
-    // 选取一些热门商品
-    products.find((p) => p.name.includes("蓝牙耳机")),
-    products.find((p) => p.name.includes("充电宝")),
-    products.find((p) => p.name.includes("保温杯")),
-    products.find((p) => p.name.includes("纯棉T恤")),
-    products.find((p) => p.name.includes("坚果礼盒")),
-    products.find((p) => p.name.includes("瑜伽垫")),
-    products.find((p) => p.name.includes("洗面奶")),
-    products.find((p) => p.name.includes("积木")),
-  ].filter(Boolean);
+  // 为约 20% 的商品创建秒杀活动
+  const numFlashProducts = Math.round(products.length * 0.2);
+  const flashSaleProducts = pickN(products, numFlashProducts);
 
   let flashSaleCount = 0;
 
@@ -386,7 +463,7 @@ async function main() {
           flashPrice: Math.round(product.price * (0.5 + Math.random() * 0.3) * 100) / 100, // 5-8 折
           flashStock: randInt(10, 100),
           startTime: startDate,
-          endTime: isActive ? endDate : randomDate(MONTHS_AGO_3, NOW),
+          endTime: endDate,
           isActive,
           createdAt: randomDate(MONTHS_AGO_6, NOW),
         },
