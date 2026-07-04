@@ -1,11 +1,14 @@
-// src/app/admin/products/page.tsx — 若依风格商品管理（Modal CRUD）
+// src/app/admin/products/page.tsx — 商品管理（批量操作 + Modal CRUD）
 "use client";
 
 import { useState } from "react";
 import useSWR from "swr";
+import { toast } from "sonner";
 import Modal from "@/components/admin/Modal";
 import Pagination from "@/components/admin/Pagination";
 import StatusBadge from "@/components/admin/StatusBadge";
+import TableCheckbox from "@/components/admin/TableCheckbox";
+import { useConfirm } from "@/components/admin/ConfirmDialog";
 import { IconAdd, IconEdit, IconDelete, IconSearch, IconRefresh } from "@/components/admin/icons";
 
 interface AdminProduct {
@@ -41,6 +44,7 @@ export default function AdminProductsPage() {
   const [page, setPage] = useState(1);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const params = new URLSearchParams();
   if (search) params.set("search", search);
@@ -53,6 +57,55 @@ export default function AdminProductsPage() {
   );
   const { data: categories } = useSWR<Category[]>("/api/admin/categories", fetcher);
   const products = data?.products || [];
+
+  // 批量选择状态
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const allSelected = products.length > 0 && products.every((p) => selectedIds.has(p.id));
+  const someSelected = products.some((p) => selectedIds.has(p.id)) && !allSelected;
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(products.map((p) => p.id)));
+    }
+  };
+
+  // 批量操作
+  const batchAction = async (action: "publish" | "unpublish" | "delete") => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    const actionLabels = { publish: "上架", unpublish: "下架", delete: "删除" };
+    const ok = action === "delete"
+      ? await confirm({ title: "批量删除", message: `确定删除选中的 ${ids.length} 个商品？此操作不可恢复。`, confirmText: "确定删除", variant: "danger" })
+      : true;
+
+    if (!ok) return;
+
+    const res = await fetch("/api/admin/products", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, action }),
+    });
+
+    if (res.ok) {
+      toast.success(`已${actionLabels[action]} ${ids.length} 个商品`);
+      setSelectedIds(new Set());
+      mutate();
+    } else {
+      const err = await res.json();
+      toast.error(err.error || "批量操作失败");
+    }
+  };
 
   // Modal 状态
   const [modalOpen, setModalOpen] = useState(false);
@@ -73,14 +126,14 @@ export default function AdminProductsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.price || !form.categoryId) { alert("请填写名称、价格和分类"); return; }
+    if (!form.name || !form.price || !form.categoryId) { toast.error("请填写名称、价格和分类"); return; }
     setSubmitting(true);
     try {
       const url = isEdit ? `/api/admin/products/${editingId}` : "/api/admin/products";
       const method = isEdit ? "PATCH" : "POST";
       const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
-      if (res.ok) { setModalOpen(false); mutate(); } else { const err = await res.json(); alert(err.error || "操作失败"); }
-    } catch { alert("操作失败"); } finally { setSubmitting(false); }
+      if (res.ok) { setModalOpen(false); mutate(); toast.success(isEdit ? "商品已更新" : "商品已创建"); } else { const err = await res.json(); toast.error(err.error || "操作失败"); }
+    } catch { toast.error("操作失败，请重试"); } finally { setSubmitting(false); }
   };
 
   const togglePublish = async (product: AdminProduct) => {
@@ -88,14 +141,17 @@ export default function AdminProductsPage() {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isPublished: !product.isPublished }),
     });
-    if (res.ok) mutate();
+    if (res.ok) { mutate(); toast.success(product.isPublished ? "已下架" : "已上架"); }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("确定删除此商品？")) return;
+    const ok = await confirm({ title: "删除商品", message: "确定删除此商品？此操作不可恢复。", confirmText: "确定删除", variant: "danger" });
+    if (!ok) return;
     const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
-    if (res.ok) mutate(); else alert("删除失败，该商品可能有关联订单");
+    if (res.ok) { mutate(); toast.success("商品已删除"); } else { toast.error("删除失败，该商品可能有关联订单"); }
   };
+
+  const clearSelection = () => setSelectedIds(new Set());
 
   return (
     <div>
@@ -124,6 +180,19 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
+      {/* 批量操作栏 */}
+      {selectedIds.size > 0 && (
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+          <span className="text-sm font-medium text-blue-700">已选 {selectedIds.size} 项</span>
+          <div className="flex gap-2">
+            <button onClick={() => batchAction("publish")} className="btn-primary text-xs">批量上架</button>
+            <button onClick={() => batchAction("unpublish")} className="btn-default text-xs">批量下架</button>
+            <button onClick={() => batchAction("delete")} className="btn-danger text-xs">批量删除</button>
+          </div>
+          <button onClick={clearSelection} className="ml-auto text-sm text-gray-400 hover:text-gray-600">取消选择</button>
+        </div>
+      )}
+
       {/* 表格 */}
       {isLoading ? (
         <div className="admin-card animate-pulse p-6">{Array.from({ length: 8 }).map((_, i) => (<div key={i} className="mb-3 h-8 rounded bg-gray-100" />))}</div>
@@ -135,13 +204,19 @@ export default function AdminProductsPage() {
         <div className="admin-card overflow-hidden">
           <table className="admin-table">
             <thead><tr>
+              <th style={{ width: 40 }}>
+                <TableCheckbox checked={allSelected} indeterminate={someSelected} onChange={toggleSelectAll} />
+              </th>
               <th style={{ width: 60 }}>ID</th><th>名称</th><th>分类</th>
               <th style={{ width: 100 }} className="text-right">价格</th><th style={{ width: 80 }} className="text-right">库存</th>
               <th style={{ width: 100 }} className="text-center">状态</th><th style={{ width: 120 }} className="text-center">操作</th>
             </tr></thead>
             <tbody>
               {products.map((p) => (
-                <tr key={p.id}>
+                <tr key={p.id} className={selectedIds.has(p.id) ? "bg-blue-50/50" : ""}>
+                  <td>
+                    <TableCheckbox checked={selectedIds.has(p.id)} onChange={() => toggleSelect(p.id)} />
+                  </td>
                   <td className="text-gray-400">{p.id}</td>
                   <td className="font-medium text-gray-800">{p.name}</td>
                   <td className="text-gray-500">{p.category.name}</td>
@@ -166,6 +241,8 @@ export default function AdminProductsPage() {
       )}
 
       {data && data.totalPages > 1 && <Pagination page={data.page} totalPages={data.totalPages} total={data.total} onChange={setPage} />}
+
+      {ConfirmDialog}
 
       {/* Modal 表单 */}
       <Modal open={modalOpen} title={isEdit ? "编辑商品" : "新增商品"} onClose={() => setModalOpen(false)} width="max-w-xl"
@@ -201,11 +278,16 @@ export default function AdminProductsPage() {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">图片 URL</label>
-              <input type="text" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} className="input-search w-full" />
+              <input type="text" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} className="input-search w-full" placeholder="https://..." />
+              {form.imageUrl && (
+                <div className="mt-2 flex h-32 items-center justify-center rounded border bg-gray-50">
+                  <img src={form.imageUrl} alt="预览" className="max-h-full max-w-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                </div>
+              )}
             </div>
             <div className="col-span-2">
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={form.isPublished} onChange={(e) => setForm({ ...form, isPublished: e.target.checked })} className="rounded" />
+                <input type="checkbox" checked={form.isPublished} onChange={(e) => setForm({ ...form, isPublished: e.target.checked })} className="rounded accent-[#409eff]" />
                 <span className="text-gray-700">上架</span>
               </label>
             </div>

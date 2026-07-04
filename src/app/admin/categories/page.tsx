@@ -3,8 +3,10 @@
 
 import { useState } from "react";
 import useSWR from "swr";
+import { toast } from "sonner";
 import Modal from "@/components/admin/Modal";
 import StatusBadge from "@/components/admin/StatusBadge";
+import { useConfirm } from "@/components/admin/ConfirmDialog";
 import { IconAdd, IconEdit, IconDelete } from "@/components/admin/icons";
 
 interface AdminCategory {
@@ -18,6 +20,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function AdminCategoriesPage() {
   const { data: categories, error, isLoading, mutate } = useSWR<AdminCategory[]>("/api/admin/categories", fetcher);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -36,14 +39,15 @@ export default function AdminCategoriesPage() {
     const url = isEdit ? `/api/admin/categories/${editingId}` : "/api/admin/categories";
     const method = isEdit ? "PATCH" : "POST";
     const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, slug }) });
-    if (res.ok) { setModalOpen(false); mutate(); } else { const err = await res.json(); alert(err.error || "操作失败"); }
+    if (res.ok) { setModalOpen(false); mutate(); toast.success(isEdit ? "分类已更新" : "分类已创建"); } else { const err = await res.json(); toast.error(err.error || "操作失败"); }
     setSubmitting(false);
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("确定删除此分类？")) return;
+    const ok = await confirm({ title: "删除分类", message: "确定删除此分类？若分类下有商品将无法删除。", confirmText: "确定删除", variant: "danger" });
+    if (!ok) return;
     const res = await fetch(`/api/admin/categories/${id}`, { method: "DELETE" });
-    if (res.ok) mutate(); else { const err = await res.json(); alert(err.error || "删除失败"); }
+    if (res.ok) { mutate(); toast.success("分类已删除"); } else { const err = await res.json(); toast.error(err.error || "删除失败"); }
   };
 
   return (
@@ -103,6 +107,8 @@ export default function AdminCategoriesPage() {
           </div>
         </form>
       </Modal>
+
+      {ConfirmDialog}
     </div>
   );
 }

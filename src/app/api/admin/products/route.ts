@@ -81,3 +81,33 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json(product, { status: 201 });
 }
+
+/** 批量操作（上架/下架/删除） */
+export async function PATCH(request: NextRequest) {
+  if (!(await checkAdmin())) {
+    return NextResponse.json({ error: "无权限" }, { status: 403 });
+  }
+
+  const body = await request.json();
+  const { ids, action } = body as { ids: number[]; action: "publish" | "unpublish" | "delete" };
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return NextResponse.json({ error: "请选择至少一个商品" }, { status: 400 });
+  }
+
+  try {
+    if (action === "delete") {
+      await prisma.product.deleteMany({ where: { id: { in: ids } } });
+      return NextResponse.json({ success: true, message: `已删除 ${ids.length} 个商品` });
+    } else if (action === "publish") {
+      await prisma.product.updateMany({ where: { id: { in: ids } }, data: { isPublished: true } });
+      return NextResponse.json({ success: true, message: `已上架 ${ids.length} 个商品` });
+    } else if (action === "unpublish") {
+      await prisma.product.updateMany({ where: { id: { in: ids } }, data: { isPublished: false } });
+      return NextResponse.json({ success: true, message: `已下架 ${ids.length} 个商品` });
+    }
+    return NextResponse.json({ error: "无效操作" }, { status: 400 });
+  } catch {
+    return NextResponse.json({ error: "批量操作失败" }, { status: 500 });
+  }
+}

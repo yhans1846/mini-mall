@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
+import { toast } from "sonner";
 import Link from "next/link";
 import StatusBadge from "@/components/admin/StatusBadge";
 
@@ -40,8 +41,8 @@ export default function AdminOrderDetailPage() {
         body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) mutate();
-      else { const err = await res.json(); alert(err.error || "操作失败"); }
-    } catch { alert("操作失败"); } finally { setLoading(false); }
+      else { const err = await res.json(); toast.error(err.error || "操作失败"); }
+    } catch { toast.error("操作失败，请重试"); } finally { setLoading(false); }
   };
 
   if (isLoading) return <div className="admin-card h-40 animate-pulse p-6" />;

@@ -3,8 +3,10 @@
 
 import { useState } from "react";
 import useSWR from "swr";
+import { toast } from "sonner";
 import Modal from "@/components/admin/Modal";
 import StatusBadge from "@/components/admin/StatusBadge";
+import { useConfirm } from "@/components/admin/ConfirmDialog";
 import { IconAdd, IconEdit, IconDelete, IconRefresh } from "@/components/admin/icons";
 
 interface FlashSaleItem {
@@ -46,6 +48,7 @@ const EMPTY_FORM = { productId: "", flashPrice: "", flashStock: "", startTime: "
 export default function AdminFlashSalesPage() {
   const { data, error, isLoading, mutate } = useSWR("/api/admin/flash-sales", fetcher);
   const { data: productsData } = useSWR("/api/admin/products?pageSize=500", fetcher);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const allProducts: ProductOption[] = [];
   if (productsData && "products" in productsData) {
@@ -76,7 +79,7 @@ export default function AdminFlashSalesPage() {
     const url = isEdit ? `/api/admin/flash-sales/${editingId}` : "/api/admin/flash-sales";
     const method = isEdit ? "PUT" : "POST";
     const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
-    if (res.ok) { setModalOpen(false); mutate(); } else { const err = await res.json(); alert(err.error || "操作失败"); }
+    if (res.ok) { setModalOpen(false); mutate(); toast.success(isEdit ? "秒杀活动已更新" : "秒杀活动已创建"); } else { const err = await res.json(); toast.error(err.error || "操作失败"); }
     setSubmitting(false);
   };
 
@@ -85,13 +88,14 @@ export default function AdminFlashSalesPage() {
       method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !fs.isActive }),
     });
-    if (res.ok) mutate(); else { const err = await res.json(); alert(err.error || "操作失败"); }
+    if (res.ok) { mutate(); toast.success(fs.isActive ? "已禁用" : "已启用"); } else { const err = await res.json(); toast.error(err.error || "操作失败"); }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("确定删除此秒杀活动？")) return;
+    const ok = await confirm({ title: "删除秒杀活动", message: "确定删除此秒杀活动？此操作不可恢复。", confirmText: "确定删除", variant: "danger" });
+    if (!ok) return;
     const res = await fetch(`/api/admin/flash-sales/${id}`, { method: "DELETE" });
-    if (res.ok) mutate(); else { const err = await res.json(); alert(err.error || "删除失败"); }
+    if (res.ok) { mutate(); toast.success("秒杀活动已删除"); } else { const err = await res.json(); toast.error(err.error || "删除失败"); }
   };
 
   const flashSales = (data && "flashSales" in data ? (data as { flashSales: FlashSaleItem[] }).flashSales : []) as FlashSaleItem[];
@@ -173,6 +177,8 @@ export default function AdminFlashSalesPage() {
           </div>
         </form>
       </Modal>
+
+      {ConfirmDialog}
     </div>
   );
 }

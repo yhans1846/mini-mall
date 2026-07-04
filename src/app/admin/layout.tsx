@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { SidebarProvider } from "@/components/admin/SidebarContext";
 import Sidebar from "@/components/admin/Sidebar";
 import Navbar from "@/components/admin/Navbar";
+import Toaster from "@/components/admin/Toaster";
 import AdminGuard from "./AdminGuard";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default function AdminLayout({
             <main className="flex-1 p-5">{children}</main>
           </div>
         </div>
+        <Toaster />
       </SidebarProvider>
     </AdminGuard>
   );

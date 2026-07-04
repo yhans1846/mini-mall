@@ -5,6 +5,9 @@ import useSWR from "swr";
 import Link from "next/link";
 import StatCard from "@/components/admin/StatCard";
 import StatusBadge from "@/components/admin/StatusBadge";
+import RevenueChart from "@/components/admin/charts/RevenueChart";
+import MonthlyChart from "@/components/admin/charts/MonthlyChart";
+import StatusPieChart from "@/components/admin/charts/StatusPieChart";
 import { IconProduct, IconOrder, IconDashboard, IconUser, IconClock, IconMoney, IconTrending, IconWarning, IconCalendar } from "@/components/admin/icons";
 
 interface DashboardData {
@@ -39,107 +42,6 @@ function formatDate(d: string) {
 }
 function formatDateTime(d: string) {
   return new Date(d).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
-}
-
-function BarChart({ data, height = 160 }: { data: { date: string; amount: number }[]; height?: number }) {
-  const max = Math.max(...data.map((d) => d.amount), 1);
-  const n = data.length;
-  const pad = { top: 24, bottom: 24 };
-  const drawW = 1000; // viewBox 虚拟宽度，用于精度
-  const drawH = height - pad.top - pad.bottom;
-
-  // 每个数据点的 x 坐标（在 0～1000 范围内均匀分布）
-  const step = n > 1 ? (drawW - 40) / (n - 1) : 0;
-  const offset = n > 1 ? 20 : drawW / 2;
-
-  const points = data.map((d, i) => {
-    const x = offset + i * step;
-    const y = drawH - (d.amount / max) * drawH;
-    return { x, y, label: d.date, amount: d.amount };
-  });
-
-  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)} ${(pad.top + p.y).toFixed(1)}`).join(" ");
-  // 面积填充路径（折线 + 底部闭合）
-  const areaPath =
-    `${linePath} L${points[n - 1].x.toFixed(1)} ${pad.top + drawH} L${points[0].x.toFixed(1)} ${pad.top + drawH} Z`;
-
-  // Y 轴刻度
-  const yTicks = [0, 0.25, 0.5, 0.75, 1];
-
-  return (
-    <svg viewBox={`0 0 ${drawW} ${height}`} className="w-full" style={{ height }}>
-      {/* Y 轴参考线 */}
-      {yTicks.map((r) => {
-        const y = pad.top + drawH - r * drawH;
-        return (
-          <g key={r}>
-            <line x1={20} y1={y} x2={drawW - 20} y2={y} stroke="#f3f4f6" strokeWidth={1} strokeDasharray="4 2" />
-            <text x={14} y={y + 3} textAnchor="end" className="text-[9px]" fill="#d1d5db">
-              ¥{(max * r).toFixed(0)}
-            </text>
-          </g>
-        );
-      })}
-
-      {/* 面积填充 */}
-      <path d={areaPath} fill="#409eff" fillOpacity={0.08} />
-
-      {/* 柱状图 */}
-      {points.map((p) => {
-        const barW = Math.max(step * 0.35, 8);
-        const barH = Math.max(drawH - p.y, 0);
-        return (
-          <rect
-            key={p.label}
-            x={p.x - barW / 2}
-            y={pad.top + p.y}
-            width={barW}
-            height={barH}
-            rx={2}
-            fill="#409eff"
-            fillOpacity={0.2}
-          />
-        );
-      })}
-
-      {/* 折线 */}
-      <path d={linePath} fill="none" stroke="#409eff" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-
-      {/* 折线端点圆点 */}
-      {points.map((p) => (
-        <circle key={p.label} cx={p.x} cy={pad.top + p.y} r={3.5} fill="#fff" stroke="#409eff" strokeWidth={2} />
-      ))}
-
-      {/* 数据标签 */}
-      {points.map((p) => (
-        <text
-          key={p.label}
-          x={p.x}
-          y={pad.top + p.y - 10}
-          textAnchor="middle"
-          className="text-[9px]"
-          fill="#6b7280"
-          fontWeight={500}
-        >
-          ¥{p.amount.toFixed(0)}
-        </text>
-      ))}
-
-      {/* X 轴日期 */}
-      {points.map((p) => (
-        <text
-          key={p.label}
-          x={p.x}
-          y={height - 3}
-          textAnchor="middle"
-          className="text-[9px]"
-          fill="#9ca3af"
-        >
-          {formatDate(p.label)}
-        </text>
-      ))}
-    </svg>
-  );
 }
 
 export default function AdminDashboard() {
@@ -236,32 +138,13 @@ export default function AdminDashboard() {
             {/* 订单状态分布 */}
             <div className="admin-card p-5">
               <h3 className="mb-4 text-sm font-semibold text-gray-800">订单状态分布</h3>
-              <div className="space-y-3">
-                {data.orderStatusDistribution.map((item) => {
-                  const total = data.orders || 1;
-                  const pct = total > 0 ? ((item.count / total) * 100).toFixed(1) : "0";
-                  return (
-                    <div key={item.status}>
-                      <div className="mb-1 flex items-center justify-between text-sm">
-                        <span className="text-gray-600">{STATUS_LABELS[item.status] || item.status}</span>
-                        <span className="text-gray-400">{item.count} 单（{pct}%）</span>
-                      </div>
-                      <div className="h-2.5 overflow-hidden rounded-full bg-gray-100">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${pct}%`, backgroundColor: STATUS_COLORS[item.status] || "#909399" }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <StatusPieChart data={data.orderStatusDistribution} />
             </div>
 
             {/* 近 7 日销售额趋势 */}
             <div className="admin-card p-5">
               <h3 className="mb-4 text-sm font-semibold text-gray-800">近 7 日销售额趋势</h3>
-              <BarChart data={data.dailyRevenue} height={160} />
+              <RevenueChart data={data.dailyRevenue} />
             </div>
           </div>
 
@@ -387,7 +270,7 @@ export default function AdminDashboard() {
           <div className="mt-5">
             <div className="admin-card p-5">
               <h3 className="mb-4 text-sm font-semibold text-gray-800">本月每日销售额</h3>
-              <BarChart data={data.monthlyDailyRevenue} height={180} />
+              <MonthlyChart data={data.monthlyDailyRevenue} />
             </div>
           </div>
         </>

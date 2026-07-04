@@ -1,4 +1,4 @@
-// src/components/admin/Sidebar.tsx — 若依风格暗色侧边栏
+// src/components/admin/Sidebar.tsx — 暗色侧边栏（现代化视觉）
 "use client";
 
 import Link from "next/link";
@@ -30,13 +30,16 @@ export default function Sidebar() {
       className="flex shrink-0 flex-col transition-all duration-300"
       style={{
         width: collapsed ? 64 : 200,
-        backgroundColor: "#1a1f2e",
+        background: "linear-gradient(180deg, #1a1f2e 0%, #1e2640 100%)",
       }}
     >
       {/* Logo */}
       <div
         className="flex h-14 items-center justify-center border-b"
-        style={{ borderColor: "#101420" }}
+        style={{
+          borderColor: "rgba(255,255,255,0.08)",
+          background: "linear-gradient(135deg, rgba(64,158,255,0.15) 0%, transparent 100%)",
+        }}
       >
         <Link href="/admin" className="flex items-center gap-2">
           {collapsed ? (
@@ -56,15 +59,24 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`mb-1 flex items-center gap-3 rounded px-3 py-2.5 text-sm transition-colors ${
+              className={`group relative mb-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200 ${
                 active
                   ? "text-white"
-                  : "text-[#bfcbd9] hover:bg-white/5 hover:text-white"
+                  : "text-[#bfcbd9] hover:translate-x-0.5 hover:bg-white/5 hover:text-white"
               }`}
-              style={active ? { backgroundColor: "#409eff" } : undefined}
+              style={active ? { backgroundColor: "rgba(64,158,255,0.2)" } : undefined}
               title={collapsed ? item.label : undefined}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              {/* 当前页左侧指示器 */}
+              {active && (
+                <span
+                  className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full"
+                  style={{ backgroundColor: "#409eff" }}
+                />
+              )}
+              <span className={`shrink-0 transition-transform duration-200 ${active ? "scale-110" : "group-hover:scale-110"}`}>
+                <Icon className="h-4 w-4" />
+              </span>
               {!collapsed && <span>{item.label}</span>}
             </Link>
           );
@@ -72,10 +84,10 @@ export default function Sidebar() {
       </nav>
 
       {/* 底部：返回前台 */}
-      <div className="border-t p-3" style={{ borderColor: "#101420" }}>
+      <div className="border-t p-3" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
         <Link
           href="/"
-          className="flex items-center gap-2 rounded px-3 py-2 text-xs text-[#bfcbd9] transition-colors hover:text-white"
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-[#bfcbd9] transition-all duration-200 hover:translate-x-0.5 hover:text-white"
           title="返回前台"
         >
           <IconHome className="h-4 w-4" />
