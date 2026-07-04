@@ -11,7 +11,6 @@ interface AdminUser {
   id: number;
   name: string;
   email: string;
-  role: string;
   avatar: string;
   membershipLevel: number;
   totalSpent: number;
@@ -107,7 +106,7 @@ export default function AdminUsersPage() {
                   <td className="font-medium text-gray-800">{u.name}</td>
                   <td className="text-gray-500">{u.email}</td>
                   <td className="text-center">
-                    <StatusBadge label={u.role === "ADMIN" ? "管理员" : "用户"} type={u.role === "ADMIN" ? "info" : "default"} />
+                    <StatusBadge label="用户" type="default" />
                   </td>
                   <td className="text-sm">{LEVEL_NAMES[u.membershipLevel] || `Lv${u.membershipLevel}`}</td>
                   <td className="text-right font-medium">¥{u.totalSpent.toFixed(2)}</td>

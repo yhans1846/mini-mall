@@ -1,13 +1,38 @@
-// src/app/admin/AdminGuard.tsx — 后台权限守卫（若依风格）
+// src/app/admin/AdminGuard.tsx — 后台权限守卫（独立 JWT 认证）
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
-export default function AdminGuard({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession();
+interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
 
-  if (status === "loading") {
+export default function AdminGuard({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<"loading" | "unauthenticated" | "denied" | "authenticated">("loading");
+  const [user, setUser] = useState<AdminUser | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/auth/me")
+      .then((res) => {
+        if (!res.ok) throw new Error("unauthenticated");
+        return res.json();
+      })
+      .then((data: AdminUser) => {
+        if (data.role !== "ADMIN") {
+          setState("denied");
+        } else {
+          setUser(data);
+          setState("authenticated");
+        }
+      })
+      .catch(() => setState("unauthenticated"));
+  }, []);
+
+  if (state === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: "#f0f2f5" }}>
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200" style={{ borderTopColor: "#409eff" }} />
@@ -15,7 +40,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
     );
   }
 
-  if (status === "unauthenticated") {
+  if (state === "unauthenticated") {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4" style={{ backgroundColor: "#f0f2f5" }}>
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
@@ -25,12 +50,12 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
         </div>
         <h1 className="text-xl font-semibold text-gray-800">请先登录</h1>
         <p className="text-sm text-gray-500">需要登录后才能访问管理后台</p>
-        <Link href="/auth/login" className="btn-primary">去登录</Link>
+        <Link href="/admin-login" className="btn-primary">去登录</Link>
       </div>
     );
   }
 
-  if (session?.user?.role !== "ADMIN") {
+  if (state === "denied") {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4" style={{ backgroundColor: "#f0f2f5" }}>
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
@@ -47,3 +72,5 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
   return <>{children}</>;
 }
+
+export { type AdminUser };

@@ -12,7 +12,7 @@ export async function GET() {
 
   const userId = parseInt(session.user.id as string, 10);
 
-  const user = await prisma.user.findUnique({
+  const user = await prisma.mallUser.findUnique({
     where: { id: userId },
     select: {
       id: true,

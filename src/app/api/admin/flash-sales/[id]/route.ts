@@ -6,10 +6,10 @@ import { prisma } from "@/lib/prisma";
 async function checkAdmin() {
   const session = await auth();
   if (!session?.user?.id) return false;
-  const user = await prisma.user.findUnique({
+  const user = await prisma.adminUser.findUnique({
     where: { id: parseInt(session.user.id as string, 10) },
   });
-  return user?.role === "ADMIN";
+  return !!user;
 }
 
 interface Params {

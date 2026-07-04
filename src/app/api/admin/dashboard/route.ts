@@ -7,8 +7,8 @@ export async function GET() {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "未登录" }, { status: 401 });
 
-  const user = await prisma.user.findUnique({ where: { id: parseInt(session.user.id as string, 10) } });
-  if (user?.role !== "ADMIN") return NextResponse.json({ error: "无权限" }, { status: 403 });
+  const user = await prisma.adminUser.findUnique({ where: { id: parseInt(session.user.id as string, 10) } });
+  if (!user) return NextResponse.json({ error: "无权限" }, { status: 403 });
 
   // 当日零点
   const todayStart = new Date();
@@ -43,7 +43,7 @@ export async function GET() {
     prisma.product.count(),
     prisma.order.count(),
     prisma.order.aggregate({ where: { status: { in: paidStatuses } }, _sum: { totalAmount: true } }),
-    prisma.user.count(),
+    prisma.mallUser.count(),
     prisma.order.count({ where: { createdAt: { gte: todayStart } } }),
     prisma.order.aggregate({
       where: { createdAt: { gte: todayStart }, status: { in: paidStatuses } },
@@ -85,7 +85,7 @@ export async function GET() {
       take: 10,
     }),
     // 最近注册用户
-    prisma.user.findMany({
+    prisma.mallUser.findMany({
       orderBy: { createdAt: "desc" },
       take: 5,
       select: { id: true, name: true, email: true, avatar: true, createdAt: true },

@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     const data = registerSchema.parse(body);
 
     // 检查邮箱是否已注册
-    const existing = await prisma.user.findUnique({
+    const existing = await prisma.mallUser.findUnique({
       where: { email: data.email },
     });
 
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     // 加密密码并创建用户
     const hashedPassword = await hash(data.password, 10);
 
-    await prisma.user.create({
+    await prisma.mallUser.create({
       data: {
         name: data.name,
         email: data.email,

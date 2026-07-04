@@ -8,8 +8,8 @@ interface Params { params: Promise<{ id: string }> }
 async function checkAdmin() {
   const session = await auth();
   if (!session?.user?.id) return false;
-  const user = await prisma.user.findUnique({ where: { id: parseInt(session.user.id as string, 10) } });
-  return user?.role === "ADMIN";
+  const user = await prisma.adminUser.findUnique({ where: { id: parseInt(session.user.id as string, 10) } });
+  return !!user;
 }
 
 /** 更新商品 */

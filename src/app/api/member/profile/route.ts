@@ -20,7 +20,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "昵称不能超过20个字符" }, { status: 400 });
   }
 
-  const user = await prisma.user.update({
+  const user = await prisma.mallUser.update({
     where: { id: userId },
     data: { name: name.trim() },
     select: { name: true },

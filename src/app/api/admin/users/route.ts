@@ -6,8 +6,8 @@ import { prisma } from "@/lib/prisma";
 async function checkAdmin() {
   const session = await auth();
   if (!session?.user?.id) return false;
-  const user = await prisma.user.findUnique({ where: { id: parseInt(session.user.id as string, 10) } });
-  return user?.role === "ADMIN";
+  const user = await prisma.adminUser.findUnique({ where: { id: parseInt(session.user.id as string, 10) } });
+  return !!user;
 }
 
 /** 获取用户列表（分页 + 搜索） */
@@ -30,14 +30,13 @@ export async function GET(request: NextRequest) {
   }
 
   const [total, users] = await Promise.all([
-    prisma.user.count({ where }),
-    prisma.user.findMany({
+    prisma.mallUser.count({ where }),
+    prisma.mallUser.findMany({
       where,
       select: {
         id: true,
         name: true,
         email: true,
-        role: true,
         avatar: true,
         membershipLevel: true,
         totalSpent: true,

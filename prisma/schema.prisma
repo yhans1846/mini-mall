@@ -7,12 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model MallUser {
   id              Int       @id @default(autoincrement())
   email           String    @unique
   name            String
   password        String                        // bcrypt 加密存储
-  role            String    @default("USER")    // USER | ADMIN
   avatar          String    @default("")         // 头像 URL
   membershipLevel Int       @default(0)          // 心悦等级 0|1|2|3
   totalSpent      Float     @default(0)         // 累计消费金额（已支付订单）
@@ -23,10 +22,19 @@ model User {
   addresses       Address[]
 }
 
+model AdminUser {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  password  String                             // bcrypt 加密存储
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Address {
   id        Int      @id @default(autoincrement())
   userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      MallUser @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String                             // 收货人姓名
   phone     String
   province  String                             // 省
@@ -84,7 +92,7 @@ model CartItem {
   id        Int      @id @default(autoincrement())
   quantity  Int      @default(1)
   userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      MallUser @relation(fields: [userId], references: [id], onDelete: Cascade)
   productId Int
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -96,7 +104,7 @@ model CartItem {
 model Order {
   id             Int         @id @default(autoincrement())
   userId         Int
-  user           User        @relation(fields: [userId], references: [id])
+  user           MallUser    @relation(fields: [userId], references: [id])
   status         String      @default("PENDING")  // PENDING | PAID | SHIPPED | COMPLETED | CANCELLED
   originalAmount Float       @default(0)          // 折扣前原价
   discountRate   Float       @default(1.0)        // 折扣率快照

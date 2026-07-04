@@ -25,7 +25,7 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const result = await signIn("credentials", {
+      const result = await signIn("mall-login", {
         email: form.email,
         password: form.password,
         redirect: false,

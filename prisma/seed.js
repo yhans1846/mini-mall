@@ -74,59 +74,55 @@ async function main() {
   }
   console.log(`✅ 已创建 ${products.length} 件商品`);
 
-  // ===== 创建用户 =====
+  // ===== 创建管理员 =====
   const passwordHash = await bcrypt.hash("admin123", 10);
 
-  const admin = await prisma.user.create({
+  const admin = await prisma.adminUser.create({
     data: {
       email: "admin@example.com",
       name: "管理员",
       password: passwordHash,
-      role: "ADMIN",
     },
   });
 
+  // ===== 创建商城用户 =====
   const userPasswordHash = await bcrypt.hash("user123", 10);
 
-  const normalUser = await prisma.user.create({
+  const normalUser = await prisma.mallUser.create({
     data: {
       email: "user@example.com",
       name: "张三",
       password: userPasswordHash,
-      role: "USER",
       membershipLevel: 0,
       totalSpent: 0,
     },
   });
 
-  const vip1User = await prisma.user.create({
+  const vip1User = await prisma.mallUser.create({
     data: {
       email: "vip1@example.com",
       name: "李四（心悦1级）",
       password: userPasswordHash,
-      role: "USER",
       membershipLevel: 1,
       totalSpent: 8000,
     },
   });
 
-  const vip2User = await prisma.user.create({
+  const vip2User = await prisma.mallUser.create({
     data: {
       email: "vip2@example.com",
       name: "王五（心悦2级）",
       password: userPasswordHash,
-      role: "USER",
       membershipLevel: 2,
       totalSpent: 80000,
     },
   });
 
-  const vip3User = await prisma.user.create({
+  const vip3User = await prisma.mallUser.create({
     data: {
       email: "vip3@example.com",
       name: "赵六（心悦3级）",
       password: userPasswordHash,
-      role: "USER",
       membershipLevel: 3,
       totalSpent: 800000,
     },

@@ -27,7 +27,7 @@ export async function PUT(request: Request) {
   }
 
   // 验证原密码
-  const user = await prisma.user.findUnique({
+  const user = await prisma.mallUser.findUnique({
     where: { id: userId },
     select: { password: true },
   });
@@ -43,7 +43,7 @@ export async function PUT(request: Request) {
 
   // 更新密码
   const hashedPassword = await bcrypt.hash(newPassword, 10);
-  await prisma.user.update({
+  await prisma.mallUser.update({
     where: { id: userId },
     data: { password: hashedPassword },
   });

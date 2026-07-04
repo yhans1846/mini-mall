@@ -70,7 +70,7 @@ export async function PUT(_request: NextRequest, { params }: Params) {
     });
 
     // 2. 更新用户累计消费
-    const user = await tx.user.update({
+    const user = await tx.mallUser.update({
       where: { id: userId },
       data: { totalSpent: { increment: order.totalAmount } },
     });
@@ -78,7 +78,7 @@ export async function PUT(_request: NextRequest, { params }: Params) {
     // 3. 重新计算会员等级（只升不降）
     const newLevel = calcMembershipLevel(user.totalSpent);
     if (newLevel > user.membershipLevel) {
-      await tx.user.update({
+      await tx.mallUser.update({
         where: { id: userId },
         data: { membershipLevel: newLevel },
       });

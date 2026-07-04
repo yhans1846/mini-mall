@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
   }
 
   // 获取用户信息（含当前等级）
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.mallUser.findUnique({ where: { id: userId } });
   if (!user) {
     return NextResponse.json({ error: "用户不存在" }, { status: 404 });
   }
