@@ -1,4 +1,4 @@
-// src/app/api/admin/flash-sales/route.ts — 后台秒杀活动管理（列表 + 创建）
+// src/app/api/admin/flash-sales/route.ts — 后台秒杀活动管理（分页 + 搜索 + 状态筛选）
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -20,11 +20,37 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const pageSize = Math.min(50, Math.max(1, parseInt(searchParams.get("pageSize") || "20", 10)));
+    const pageSize = Math.min(50, Math.max(1, parseInt(searchParams.get("pageSize") || "10", 10)));
+    const search = searchParams.get("search") || "";
+    const status = searchParams.get("status") || ""; // active/inactive/upcoming/ended
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
+
+    if (search) {
+      where.product = { name: { contains: search } };
+    }
+
+    // 状态筛选
+    const now = new Date();
+    if (status === "active") {
+      where.isActive = true;
+      where.startTime = { lte: now };
+      where.endTime = { gt: now };
+    } else if (status === "inactive") {
+      where.isActive = false;
+    } else if (status === "upcoming") {
+      where.isActive = true;
+      where.startTime = { gt: now };
+    } else if (status === "ended") {
+      where.isActive = true;
+      where.endTime = { lte: now };
+    }
 
     const [total, flashSales] = await Promise.all([
-      prisma.flashSale.count(),
+      prisma.flashSale.count({ where }),
       prisma.flashSale.findMany({
+        where,
         include: {
           product: { select: { id: true, name: true, imageUrl: true, price: true } },
         },
@@ -59,7 +85,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "缺少必填字段" }, { status: 400 });
     }
 
-    // 检查商品存在
     const product = await prisma.product.findUnique({ where: { id: productId } });
     if (!product) {
       return NextResponse.json({ error: "商品不存在" }, { status: 404 });

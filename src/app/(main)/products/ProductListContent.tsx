@@ -31,11 +31,13 @@ export default function ProductListContent({ categories }: ProductListContentPro
   const search = searchParams.get("search") || "";
   const page = searchParams.get("page") || "1";
   const sort = searchParams.get("sort") || "";
+  const flashSale = searchParams.get("flashSale") || "";
 
   const params = new URLSearchParams();
   if (search) params.set("search", search);
   if (currentCategoryId) params.set("categoryId", currentCategoryId);
   if (sort) params.set("sort", sort);
+  if (flashSale) params.set("flashSale", flashSale);
   params.set("page", page);
 
   const { data, error, isLoading } = useSWR<PaginatedResponse<Product>>(
@@ -98,6 +100,13 @@ export default function ProductListContent({ categories }: ProductListContentPro
             </Link>
           );
         })}
+        <span className="mx-2 text-gray-200">|</span>
+        <Link href={buildHref({ flashSale: flashSale ? "" : "true", sort: "", page: "" })}
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+            flashSale ? "bg-red-500 text-white shadow-sm" : "bg-white text-red-500 hover:bg-red-50 border border-red-200"
+          }`}>
+          ⚡ 秒杀
+        </Link>
       </div>
 
       <div className="mt-3">

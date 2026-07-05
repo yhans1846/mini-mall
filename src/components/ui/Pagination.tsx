@@ -1,4 +1,4 @@
-// src/components/ui/Pagination.tsx
+// src/components/ui/Pagination.tsx — 前台分页（支持 URL params + onChange 回调）
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
@@ -7,38 +7,39 @@ import { useCallback } from "react";
 interface PaginationProps {
   page: number;
   totalPages: number;
+  basePath?: string;
+  onChange?: (page: number) => void;
 }
 
-export default function Pagination({ page, totalPages }: PaginationProps) {
+export default function Pagination({ page, totalPages, basePath, onChange }: PaginationProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // 跳转到指定页
   const goToPage = useCallback(
     (p: number) => {
+      if (onChange) {
+        onChange(p);
+        return;
+      }
       const params = new URLSearchParams(searchParams.toString());
       params.set("page", String(p));
-      router.push(`/products?${params.toString()}`);
+      router.push(`${basePath || "/products"}?${params.toString()}`);
     },
-    [router, searchParams]
+    [router, searchParams, basePath, onChange]
   );
 
-  // 只有一页时不显示分页
   if (totalPages <= 1) return null;
 
-  // 生成页码列表：当前页前后各 2 页 + 首尾页 + 省略号
   const getPageNumbers = (): (number | "...")[] => {
     const pages: (number | "...")[] = [];
     const delta = 2;
     const left = Math.max(2, page - delta);
     const right = Math.min(totalPages - 1, page + delta);
-
     pages.push(1);
     if (left > 2) pages.push("...");
     for (let i = left; i <= right; i++) pages.push(i);
     if (right < totalPages - 1) pages.push("...");
     if (totalPages > 1) pages.push(totalPages);
-
     return pages;
   };
 
@@ -46,7 +47,6 @@ export default function Pagination({ page, totalPages }: PaginationProps) {
 
   return (
     <div className="mt-8 flex items-center justify-center gap-1">
-      {/* 上一页 */}
       <button
         onClick={() => goToPage(page - 1)}
         disabled={page <= 1}
@@ -54,29 +54,21 @@ export default function Pagination({ page, totalPages }: PaginationProps) {
       >
         上一页
       </button>
-
-      {/* 页码 */}
       {pageNumbers.map((p, i) =>
         p === "..." ? (
-          <span key={`ellipsis-${i}`} className="px-2 text-gray-400">
-            ...
-          </span>
+          <span key={`e-${i}`} className="px-2 text-gray-400">...</span>
         ) : (
           <button
             key={p}
             onClick={() => goToPage(p)}
             className={`rounded-md px-3 py-1.5 text-sm ${
-              p === page
-                ? "bg-blue-600 text-white"
-                : "text-gray-600 hover:bg-gray-100"
+              p === page ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"
             }`}
           >
             {p}
           </button>
         )
       )}
-
-      {/* 下一页 */}
       <button
         onClick={() => goToPage(page + 1)}
         disabled={page >= totalPages}

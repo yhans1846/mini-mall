@@ -18,6 +18,7 @@ export interface Product {
   category: Category;
   createdAt: string;
   flashSale?: FlashSaleInfo | null;
+  salesCount?: number;
 }
 
 export interface FlashSaleInfo {

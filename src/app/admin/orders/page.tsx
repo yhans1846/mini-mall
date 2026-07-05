@@ -51,6 +51,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function AdminOrdersPage() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -59,6 +60,7 @@ export default function AdminOrdersPage() {
 
   const params = new URLSearchParams();
   params.set("page", String(page));
+  params.set("pageSize", String(pageSize));
   if (statusFilter) params.set("status", statusFilter);
   if (startDate) params.set("startDate", startDate);
   if (endDate) params.set("endDate", endDate);
@@ -182,7 +184,7 @@ export default function AdminOrdersPage() {
             <thead><tr>
               <th style={{ width: 80 }}>订单号</th><th>用户</th><th>商品</th>
               <th style={{ width: 100 }} className="text-right">金额</th>
-              <th style={{ width: 100 }} className="text-center">状态</th>
+              <th style={{ width: 120 }} className="text-center">状态</th>
               <th style={{ width: 160 }}>时间</th>
               <th style={{ width: 80 }} className="text-center">操作</th>
             </tr></thead>
@@ -211,7 +213,7 @@ export default function AdminOrdersPage() {
       )}
 
       {totalPages > 1 && (
-        <Pagination page={data?.page || page} totalPages={totalPages} total={total} onChange={setPage} />
+        <Pagination page={data?.page || page} totalPages={totalPages} total={total} onChange={setPage} pageSize={pageSize} onPageSizeChange={setPageSize} />
       )}
     </div>
   );

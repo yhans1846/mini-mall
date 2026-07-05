@@ -3,6 +3,28 @@ import { prisma } from "@/lib/prisma";
 import { attachFlashSales } from "@/lib/flash-sale";
 import type { Product, PaginatedResponse } from "@/types";
 
+/** 为商品批量附加销量数据 */
+async function attachSalesCounts(products: (Product & { category?: unknown })[]) {
+  if (products.length === 0) return products;
+  const productIds = products.map((p) => p.id);
+  const salesData = await prisma.orderItem.groupBy({
+    by: ["productId"],
+    where: {
+      productId: { in: productIds },
+      order: { status: { in: ["PAID", "SHIPPED", "COMPLETED"] } },
+    },
+    _sum: { quantity: true },
+  });
+  const salesMap = new Map<number, number>();
+  for (const item of salesData) {
+    salesMap.set(item.productId, item._sum.quantity || 0);
+  }
+  return products.map((p) => ({
+    ...p,
+    salesCount: salesMap.get(p.id) || 0,
+  }));
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -14,12 +36,27 @@ export async function GET(request: NextRequest) {
       Math.max(1, parseInt(searchParams.get("pageSize") || "12", 10))
     );
     const sort = searchParams.get("sort") || "";
+    const flashSale = searchParams.get("flashSale") || "";
 
-    // 构建查询条件：只查已发布商品
+    // 如有秒杀筛选，先查出有活跃秒杀的商品 ID
+    let flashSaleProductIds: number[] | null = null;
+    if (flashSale === "true") {
+      const now = new Date();
+      const flashSales = await prisma.flashSale.findMany({
+        where: { isActive: true, startTime: { lte: now }, endTime: { gt: now } },
+        select: { productId: true },
+      });
+      flashSaleProductIds = flashSales.map((fs) => fs.productId);
+      if (flashSaleProductIds.length === 0) {
+        // 没有秒杀商品时直接返回空
+        const emptyResponse: PaginatedResponse<Product> = { products: [], total: 0, page, pageSize, totalPages: 0 };
+        return NextResponse.json(emptyResponse);
+      }
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: Record<string, any> = { isPublished: true };
 
-    // 关键词模糊搜索
     if (search) {
       where.OR = [
         { name: { contains: search } },
@@ -27,12 +64,15 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // 分类筛选
     if (categoryId) {
       where.categoryId = parseInt(categoryId, 10);
     }
 
-    // 按销量排序：先查所有匹配商品，聚合销量后手动分页
+    if (flashSaleProductIds) {
+      where.id = { in: flashSaleProductIds };
+    }
+
+    // 按销量排序
     if (sort === "sales") {
       const allProducts = await prisma.product.findMany({
         where,
@@ -58,7 +98,6 @@ export async function GET(request: NextRequest) {
         salesMap.set(item.productId, item._sum.quantity || 0);
       }
 
-      // 按销量降序，无销量时按 id 降序兜底
       const sorted = [...allProducts].sort((a, b) => {
         const salesA = salesMap.get(a.id) || 0;
         const salesB = salesMap.get(b.id) || 0;
@@ -70,9 +109,10 @@ export async function GET(request: NextRequest) {
       const totalPages = Math.ceil(total / pageSize);
       const products = sorted.slice((page - 1) * pageSize, page * pageSize);
       const productsWithFlash = await attachFlashSales(products);
+      const productsWithSales = await attachSalesCounts(productsWithFlash as unknown as Product[]);
 
       const response: PaginatedResponse<Product> = {
-        products: productsWithFlash as unknown as Product[],
+        products: productsWithSales as unknown as Product[],
         total,
         page,
         pageSize,
@@ -82,7 +122,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(response);
     }
 
-    // 按最新排序或默认（原行为）
     const orderBy = sort === "newest" ? { createdAt: "desc" as const } : { createdAt: "desc" as const };
 
     const [total, products] = await Promise.all([
@@ -98,9 +137,10 @@ export async function GET(request: NextRequest) {
 
     const totalPages = Math.ceil(total / pageSize);
     const productsWithFlash = await attachFlashSales(products);
+    const productsWithSales = await attachSalesCounts(productsWithFlash as unknown as Product[]);
 
     const response: PaginatedResponse<Product> = {
-      products: productsWithFlash as unknown as Product[],
+      products: productsWithSales as unknown as Product[],
       total,
       page,
       pageSize,

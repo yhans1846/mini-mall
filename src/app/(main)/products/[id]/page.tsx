@@ -101,6 +101,11 @@ export default function ProductDetailPage() {
           {product.flashSale && (
             <span className="absolute left-3 top-3 z-10 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 px-3 py-1.5 text-sm font-semibold text-white shadow-lg">⚡ 限时秒杀</span>
           )}
+          {product.flashSale && (
+            <div className="absolute right-3 top-3 z-10">
+              <CountdownTimer endTime={product.flashSale.endTime} className="!bg-black/60 !text-white !text-xs !px-2 !py-1 !rounded-lg !font-medium" />
+            </div>
+          )}
           {product.imageUrl ? (
             <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
           ) : (
@@ -120,7 +125,6 @@ export default function ProductDetailPage() {
               <span className="text-lg text-gray-400 line-through">{formatPrice(product.price)}</span>
             )}
           </div>
-          {product.flashSale && <CountdownTimer endTime={product.flashSale.endTime} className="mt-2" />}
 
           <p className="mt-3 text-sm text-gray-500">库存：{hasStock ? `${product.stock} 件` : "暂时无货"}</p>
 

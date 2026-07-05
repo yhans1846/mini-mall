@@ -1,12 +1,13 @@
-// src/app/orders/page.tsx — 我的订单列表（状态筛选）
+// src/app/orders/page.tsx — 我的订单列表（分页 + 状态筛选）
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, Suspense } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import Link from "next/link";
 import EmptyState from "@/components/shared/EmptyState";
+import Pagination from "@/components/ui/Pagination";
 import { formatPrice } from "@/lib/utils";
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -18,7 +19,7 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
 };
 
 const STATUS_FILTERS = [
-  { label: "全部", value: "" },
+  { label: "全部", value: "ALL" },
   { label: "待付款", value: "PENDING" },
   { label: "已支付", value: "PAID" },
   { label: "已发货", value: "SHIPPED" },
@@ -29,21 +30,35 @@ const STATUS_FILTERS = [
 interface OrderItem { id: number; quantity: number; price: number; product: { name: string; imageUrl: string } }
 interface Order { id: number; status: string; totalAmount: number; createdAt: string; items: OrderItem[] }
 
+interface OrdersResponse {
+  orders: Order[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-export default function OrdersPage() {
+function OrdersContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [filter, setFilter] = useState("");
+  const searchParams = useSearchParams();
 
-  const { data: orders, error, isLoading } = useSWR<Order[]>(session ? "/api/orders" : null, fetcher);
+  const currentPage = parseInt(searchParams.get("page") || "1", 10);
+  const currentFilter = searchParams.get("status") || "ALL";
 
-  // 前端按状态筛选
-  const filteredOrders = useMemo(() => {
-    if (!orders) return [];
-    if (!filter) return orders;
-    return orders.filter((o) => o.status === filter);
-  }, [orders, filter]);
+  const { data, error, isLoading } = useSWR<OrdersResponse>(
+    session ? `/api/orders?page=${currentPage}&status=${currentFilter}` : null,
+    fetcher,
+  );
+
+  const setFilter = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("status", value);
+    params.set("page", "1");
+    router.push(`/orders?${params.toString()}`);
+  };
 
   if (status === "unauthenticated") { router.push("/auth/login"); return null; }
 
@@ -72,10 +87,21 @@ export default function OrdersPage() {
     );
   }
 
-  if (!orders || orders.length === 0) {
+  const orders = data?.orders || [];
+  const totalPages = data?.totalPages || 1;
+
+  if (orders.length === 0 && currentPage === 1) {
     return (
       <div className="py-8">
         <h1 className="mb-6 text-2xl font-bold">我的订单</h1>
+        <div className="mb-5 flex flex-wrap gap-2">
+          {STATUS_FILTERS.map((s) => (
+            <button key={s.value} onClick={() => setFilter(s.value)}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+                currentFilter === s.value ? "bg-blue-600 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}>{s.label}</button>
+          ))}
+        </div>
         <EmptyState title="暂无订单" description="快去挑选心仪的商品吧" actionLabel="去逛逛" actionHref="/products" />
       </div>
     );
@@ -90,18 +116,16 @@ export default function OrdersPage() {
         {STATUS_FILTERS.map((s) => (
           <button key={s.value} onClick={() => setFilter(s.value)}
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
-              filter === s.value ? "bg-blue-600 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}>
-            {s.label}
-          </button>
+              currentFilter === s.value ? "bg-blue-600 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}>{s.label}</button>
         ))}
       </div>
 
       <div className="space-y-4">
-        {filteredOrders.length === 0 ? (
+        {orders.length === 0 ? (
           <EmptyState title="无匹配订单" description="当前筛选条件下没有订单" />
         ) : (
-          filteredOrders.map((order) => {
+          orders.map((order) => {
             const si = STATUS_MAP[order.status] || { label: order.status, color: "bg-gray-50 text-gray-500 border-gray-200" };
             const firstItem = order.items[0];
             return (
@@ -135,6 +159,14 @@ export default function OrdersPage() {
           })
         )}
       </div>
+
+      {totalPages > 1 && (
+        <Pagination page={currentPage} totalPages={totalPages} basePath="/orders" />
+      )}
     </div>
   );
+}
+
+export default function OrdersPage() {
+  return <Suspense fallback={<div className="py-8 text-center text-gray-400">加载中...</div>}><OrdersContent /></Suspense>;
 }

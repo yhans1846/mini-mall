@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   const startDate = searchParams.get("startDate") || "";
   const endDate = searchParams.get("endDate") || "";
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-  const pageSize = 20;
+  const pageSize = Math.min(50, Math.max(1, parseInt(searchParams.get("pageSize") || "10", 10)));
 
   // 构建筛选条件
   const where: any = {};

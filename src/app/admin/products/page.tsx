@@ -23,6 +23,7 @@ interface AdminProduct {
   stock: number;
   isPublished: boolean;
   category: { id: number; name: string };
+  createdAt: string;
 }
 interface Category {
   id: number;
@@ -47,6 +48,7 @@ const EMPTY_FORM = {
 export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const { confirm, ConfirmDialog } = useConfirm();
@@ -63,8 +65,8 @@ export default function AdminProductsPage() {
   }, []);
 
   const params = new URLSearchParams();
+  params.set("pageSize", String(pageSize));
   if (debouncedSearch) params.set("search", debouncedSearch);
-  params.set("page", String(page));
   if (categoryFilter) params.set("categoryId", categoryFilter);
   if (statusFilter) params.set("status", statusFilter);
 
@@ -247,7 +249,8 @@ export default function AdminProductsPage() {
               </th>
               <th style={{ width: 60 }}>ID</th><th>名称</th><th>分类</th>
               <th style={{ width: 100 }} className="text-right">价格</th><th style={{ width: 80 }} className="text-right">库存</th>
-              <th style={{ width: 100 }} className="text-center">状态</th><th style={{ width: 120 }} className="text-center">操作</th>
+              <th style={{ width: 150 }}>创建时间</th>
+              <th style={{ width: 120 }} className="text-center">状态</th><th style={{ width: 120 }} className="text-center">操作</th>
             </tr></thead>
             <tbody>
               {products.map((p) => (
@@ -260,6 +263,7 @@ export default function AdminProductsPage() {
                   <td className="text-gray-500">{p.category.name}</td>
                   <td className="text-right font-medium" style={{ color: "#409eff" }}>¥{p.price.toFixed(2)}</td>
                   <td className="text-right">{p.stock}</td>
+                  <td className="text-xs text-gray-400">{new Date(p.createdAt).toLocaleString("zh-CN")}</td>
                   <td className="text-center">
                     <button onClick={() => togglePublish(p)}>
                       <StatusBadge label={p.isPublished ? "已上架" : "已下架"} type={p.isPublished ? "success" : "info"} />
@@ -278,7 +282,7 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      {data && data.totalPages > 1 && <Pagination page={data.page} totalPages={data.totalPages} total={data.total} onChange={setPage} />}
+      {data && data.totalPages > 1 && <Pagination page={data.page} totalPages={data.totalPages} total={data.total} onChange={setPage} pageSize={pageSize} onPageSizeChange={setPageSize} />}
 
       {ConfirmDialog}
 

@@ -4,26 +4,42 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDiscountRate } from "@/lib/utils";
 
-/** 获取当前用户订单列表 */
-export async function GET() {
+/** 获取当前用户订单列表（分页） */
+export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "未登录" }, { status: 401 });
   }
 
   const userId = parseInt(session.user.id as string, 10);
+  const { searchParams } = new URL(request.url);
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+  const pageSize = Math.min(50, Math.max(1, parseInt(searchParams.get("pageSize") || "10", 10)));
+  const status = searchParams.get("status") || "";
 
-  const orders = await prisma.order.findMany({
-    where: { userId },
-    include: {
-      items: {
-        include: { product: { select: { name: true, imageUrl: true } } },
+  const where: { userId: number; status?: { in: string[] } } = { userId };
+  if (status && status !== "ALL") {
+    where.status = { in: status.split(",") };
+  }
+
+  const [total, orders] = await Promise.all([
+    prisma.order.count({ where }),
+    prisma.order.findMany({
+      where,
+      include: {
+        items: {
+          include: { product: { select: { name: true, imageUrl: true } } },
+        },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
 
-  return NextResponse.json(orders);
+  const totalPages = Math.ceil(total / pageSize);
+
+  return NextResponse.json({ orders, total, page, pageSize, totalPages });
 }
 
 /** 从购物车创建订单 */
