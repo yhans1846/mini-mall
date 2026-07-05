@@ -65,6 +65,14 @@ model Product {
   isPublished Boolean     @default(true)
   categoryId  Int
   category    Category    @relation(fields: [categoryId], references: [id])
+  brand       String      @default("")       // 品牌
+  subtitle    String      @default("")       // 卖点副标题
+  images      String      @default("[]")     // JSON: string[] 多张图片URL
+  specs       String      @default("[]")     // JSON: {key,value}[] 规格参数
+  tags        String      @default("[]")     // JSON: string[] 标签
+  videoUrl    String      @default("")       // 商品视频链接
+  origin      String      @default("")       // 产地
+  weight      Float?                         // 重量(kg)，可空
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   cartItems   CartItem[]

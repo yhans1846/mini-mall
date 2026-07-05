@@ -6,6 +6,11 @@ export interface Category {
   slug: string;
 }
 
+export interface SpecItem {
+  key: string;
+  value: string;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -16,6 +21,14 @@ export interface Product {
   isPublished: boolean;
   categoryId: number;
   category: Category;
+  brand: string;
+  subtitle: string;
+  images: string[];
+  specs: SpecItem[];
+  tags: string[];
+  videoUrl: string;
+  origin: string;
+  weight: number | null;
   createdAt: string;
   flashSale?: FlashSaleInfo | null;
   salesCount?: number;

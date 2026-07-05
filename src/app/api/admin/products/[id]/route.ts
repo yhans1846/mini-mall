@@ -1,7 +1,8 @@
-// src/app/api/admin/products/[id]/route.ts — 更新/删除商品
+// src/app/api/admin/products/[id]/route.ts — 获取/更新/删除商品
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { transformProduct } from "@/lib/utils";
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -10,6 +11,17 @@ async function checkAdmin() {
   if (!session?.user?.id) return false;
   const user = await prisma.adminUser.findUnique({ where: { id: parseInt(session.user.id as string, 10) } });
   return !!user;
+}
+
+/** 获取商品详情（含所有字段） */
+export async function GET(_request: NextRequest, { params }: Params) {
+  if (!(await checkAdmin())) {
+    return NextResponse.json({ error: "无权限" }, { status: 403 });
+  }
+  const { id } = await params;
+  const product = await prisma.product.findUnique({ where: { id: parseInt(id, 10) }, include: { category: true } });
+  if (!product) return NextResponse.json({ error: "商品不存在" }, { status: 404 });
+  return NextResponse.json(transformProduct(product as typeof product & { images?: string; specs?: string; tags?: string }));
 }
 
 /** 更新商品 */
@@ -30,6 +42,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (body.imageUrl !== undefined) data.imageUrl = body.imageUrl;
   if (body.categoryId !== undefined) data.categoryId = parseInt(body.categoryId, 10);
   if (body.isPublished !== undefined) data.isPublished = body.isPublished;
+  if (body.brand !== undefined) data.brand = body.brand;
+  if (body.subtitle !== undefined) data.subtitle = body.subtitle;
+  if (body.images !== undefined) data.images = typeof body.images === "string" ? body.images : JSON.stringify(body.images);
+  if (body.specs !== undefined) data.specs = typeof body.specs === "string" ? body.specs : JSON.stringify(body.specs);
+  if (body.tags !== undefined) data.tags = typeof body.tags === "string" ? body.tags : JSON.stringify(body.tags);
+  if (body.videoUrl !== undefined) data.videoUrl = body.videoUrl;
+  if (body.origin !== undefined) data.origin = body.origin;
+  if (body.weight !== undefined) data.weight = body.weight !== "" ? parseFloat(body.weight) : null;
 
   const product = await prisma.product.update({ where: { id: productId }, data });
   return NextResponse.json(product);

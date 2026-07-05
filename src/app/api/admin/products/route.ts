@@ -61,7 +61,8 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { name, description, price, stock, imageUrl, categoryId, isPublished } = body;
+  const { name, description, price, stock, imageUrl, categoryId, isPublished,
+    brand, subtitle, images, specs, tags, videoUrl, origin, weight } = body;
 
   if (!name || price === undefined || !categoryId) {
     return NextResponse.json({ error: "名称、价格、分类为必填" }, { status: 400 });
@@ -76,6 +77,14 @@ export async function POST(request: NextRequest) {
       imageUrl: imageUrl || "",
       categoryId: parseInt(categoryId, 10),
       isPublished: isPublished !== false,
+      brand: brand || "",
+      subtitle: subtitle || "",
+      images: images ? JSON.stringify(images) : "[]",
+      specs: specs ? JSON.stringify(specs) : "[]",
+      tags: tags ? JSON.stringify(tags) : "[]",
+      videoUrl: videoUrl || "",
+      origin: origin || "",
+      weight: weight !== undefined && weight !== "" ? parseFloat(weight) : null,
     },
   });
 

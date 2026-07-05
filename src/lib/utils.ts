@@ -1,5 +1,7 @@
 // src/lib/utils.ts — 通用工具函数
 
+import type { SpecItem } from "@/types";
+
 /** 会员等级配置 */
 export const MEMBERSHIP_TIERS = [
   { level: 0, name: "普通会员", threshold: 0, discountRate: 1.0 },
@@ -28,4 +30,19 @@ export function getDiscountRate(level: number): number {
 /** 格式化价格 */
 export function formatPrice(price: number): string {
   return `¥${price.toFixed(2)}`;
+}
+
+/** 将 Prisma Product（JSON字段为String）转换为前端 Product 类型 */
+export function transformProduct<T extends { images?: string; specs?: string; tags?: string }>(product: T): T & { images: string[]; specs: SpecItem[]; tags: string[] } {
+  return {
+    ...product,
+    images: safeJsonParse(product.images, []),
+    specs: safeJsonParse(product.specs, []),
+    tags: safeJsonParse(product.tags, []),
+  };
+}
+
+function safeJsonParse<T>(val: string | undefined | null, fallback: T): T {
+  if (!val) return fallback;
+  try { return JSON.parse(val); } catch { return fallback; }
 }

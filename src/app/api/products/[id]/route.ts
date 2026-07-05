@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { attachFlashSale } from "@/lib/flash-sale";
+import { transformProduct } from "@/lib/utils";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -26,8 +27,9 @@ export async function GET(_request: Request, { params }: Params) {
     }
 
     const productWithFlash = await attachFlashSale(product);
+    const transformed = transformProduct(productWithFlash as typeof productWithFlash & { images?: string; specs?: string; tags?: string });
 
-    return NextResponse.json(productWithFlash);
+    return NextResponse.json(transformed);
   } catch {
     return NextResponse.json({ error: "获取商品详情失败" }, { status: 500 });
   }

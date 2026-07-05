@@ -43,6 +43,8 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 const EMPTY_FORM = {
   name: "", description: "", price: "", stock: "0",
   imageUrl: "", categoryId: "", isPublished: true,
+  brand: "", subtitle: "", images: "", specs: "", tags: "",
+  videoUrl: "", origin: "", weight: "",
 };
 
 export default function AdminProductsPage() {
@@ -133,12 +135,36 @@ export default function AdminProductsPage() {
   const isEdit = editingId !== null;
 
   const openCreate = () => { setEditingId(null); setForm(EMPTY_FORM); setModalOpen(true); };
-  const openEdit = (p: AdminProduct) => {
+  const openEdit = async (p: AdminProduct) => {
     setEditingId(p.id);
-    setForm({
-      name: p.name, description: "", price: p.price.toString(), stock: p.stock.toString(),
-      imageUrl: "", categoryId: p.category.id.toString(), isPublished: p.isPublished,
-    });
+    // 编辑时从 API 获取完整数据（含新字段）
+    try {
+      const res = await fetch(`/api/admin/products/${p.id}`);
+      if (res.ok) {
+        const full = await res.json();
+        setForm({
+          name: full.name,
+          description: full.description || "",
+          price: full.price.toString(),
+          stock: full.stock.toString(),
+          imageUrl: full.imageUrl || "",
+          categoryId: full.categoryId.toString(),
+          isPublished: full.isPublished,
+          brand: full.brand || "",
+          subtitle: full.subtitle || "",
+          images: full.images ? JSON.stringify(full.images) : "",
+          specs: full.specs ? JSON.stringify(full.specs) : "",
+          tags: full.tags ? (Array.isArray(full.tags) ? full.tags.join(", ") : full.tags) : "",
+          videoUrl: full.videoUrl || "",
+          origin: full.origin || "",
+          weight: full.weight !== null && full.weight !== undefined ? full.weight.toString() : "",
+        });
+      } else {
+        setForm({ ...EMPTY_FORM, name: p.name, price: p.price.toString(), stock: p.stock.toString(), categoryId: p.category.id.toString(), isPublished: p.isPublished });
+      }
+    } catch {
+      setForm({ ...EMPTY_FORM, name: p.name, price: p.price.toString(), stock: p.stock.toString(), categoryId: p.category.id.toString(), isPublished: p.isPublished });
+    }
     setModalOpen(true);
   };
 
@@ -147,9 +173,17 @@ export default function AdminProductsPage() {
     if (!form.name || !form.price || !form.categoryId) { toast.error("请填写名称、价格和分类"); return; }
     setSubmitting(true);
     try {
+      // 构建提交数据：转换 JSON 字段和标签
+      const body = {
+        ...form,
+        images: form.images ? (() => { try { return JSON.parse(form.images); } catch { return form.images; } })() : [],
+        specs: form.specs ? (() => { try { return JSON.parse(form.specs); } catch { return form.specs; } })() : [],
+        tags: form.tags ? form.tags.split(/[,，、\s]+/).filter(Boolean) : [],
+        weight: form.weight !== "" ? form.weight : null,
+      };
       const url = isEdit ? `/api/admin/products/${editingId}` : "/api/admin/products";
       const method = isEdit ? "PATCH" : "POST";
-      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (res.ok) { setModalOpen(false); mutate(); toast.success(isEdit ? "商品已更新" : "商品已创建"); } else { const err = await res.json(); toast.error(err.error || "操作失败"); }
     } catch { toast.error("操作失败，请重试"); } finally { setSubmitting(false); }
   };
@@ -332,6 +366,43 @@ export default function AdminProductsPage() {
                 <input type="checkbox" checked={form.isPublished} onChange={(e) => setForm({ ...form, isPublished: e.target.checked })} className="rounded accent-[#409eff]" />
                 <span className="text-gray-700">上架</span>
               </label>
+            </div>
+
+            {/* ──── 更多信息 ──── */}
+            <div className="col-span-2 mt-2 border-t pt-4">
+              <h4 className="mb-3 text-sm font-semibold text-gray-700">更多信息</h4>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">品牌</label>
+              <input type="text" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} className="input-search w-full" placeholder="如：华为、小米" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">卖点副标题</label>
+              <input type="text" value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} className="input-search w-full" placeholder="简短卖点描述" />
+            </div>
+            <div className="col-span-2">
+              <label className="mb-1 block text-sm font-medium text-gray-700">多图 (JSON 数组)</label>
+              <input type="text" value={form.images} onChange={(e) => setForm({ ...form, images: e.target.value })} className="input-search w-full" placeholder='["/img1.jpg","/img2.jpg"]' />
+            </div>
+            <div className="col-span-2">
+              <label className="mb-1 block text-sm font-medium text-gray-700">规格参数 (JSON)</label>
+              <input type="text" value={form.specs} onChange={(e) => setForm({ ...form, specs: e.target.value })} className="input-search w-full" placeholder='[{"key":"尺寸","value":"6.7英寸"}]' />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">标签 (逗号分隔)</label>
+              <input type="text" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} className="input-search w-full" placeholder="新品, 热销, 限定" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">视频链接</label>
+              <input type="text" value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} className="input-search w-full" placeholder="https://..." />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">产地</label>
+              <input type="text" value={form.origin} onChange={(e) => setForm({ ...form, origin: e.target.value })} className="input-search w-full" placeholder="如：广东深圳" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">重量 (kg)</label>
+              <input type="number" step="0.01" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} className="input-search w-full" placeholder="0.5" />
             </div>
           </div>
         </form>

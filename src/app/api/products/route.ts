@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { attachFlashSales } from "@/lib/flash-sale";
+import { transformProduct } from "@/lib/utils";
 import type { Product, PaginatedResponse } from "@/types";
 
 /** 为商品批量附加销量数据 */
@@ -110,9 +111,10 @@ export async function GET(request: NextRequest) {
       const products = sorted.slice((page - 1) * pageSize, page * pageSize);
       const productsWithFlash = await attachFlashSales(products);
       const productsWithSales = await attachSalesCounts(productsWithFlash as unknown as Product[]);
+      const transformedSales = productsWithSales.map((p) => transformProduct(p as unknown as { images?: string; specs?: string; tags?: string }));
 
       const response: PaginatedResponse<Product> = {
-        products: productsWithSales as unknown as Product[],
+        products: transformedSales as unknown as Product[],
         total,
         page,
         pageSize,
@@ -138,9 +140,10 @@ export async function GET(request: NextRequest) {
     const totalPages = Math.ceil(total / pageSize);
     const productsWithFlash = await attachFlashSales(products);
     const productsWithSales = await attachSalesCounts(productsWithFlash as unknown as Product[]);
+    const transformed = productsWithSales.map((p) => transformProduct(p as unknown as { images?: string; specs?: string; tags?: string }));
 
     const response: PaginatedResponse<Product> = {
-      products: productsWithSales as unknown as Product[],
+      products: transformed as unknown as Product[],
       total,
       page,
       pageSize,

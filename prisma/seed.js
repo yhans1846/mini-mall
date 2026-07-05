@@ -29,6 +29,111 @@ function pickN(arr, n) {
   return shuffled.slice(0, n);
 }
 
+const BRAND_NAMES = ["优品", "极客", "北欧时光", "自然之选", "悦享", "智造", "简约派", "轻奢", "田园风", "酷玩", "华为", "小米", "索尼", "松下", "飞利浦", "耐克", "阿迪达斯", "无印良品", "网易严选", "京东京造"];
+const SUBTITLES = [
+  "品质生活，从这一件开始",
+  "热卖爆款，口碑之选",
+  "限时特惠，不容错过",
+  "全新升级，体验升级",
+  "经典设计，历久弥新",
+  "匠心工艺，细节见真章",
+  "热销爆款，万人好评",
+  "轻奢品质，亲民价格",
+  "潮流之选，彰显品味",
+  "舒适体验，从此刻开始",
+  "精致生活，触手可及",
+  "品质保证，放心之选",
+  "人气推荐，大家都在买",
+  "极致性价比，品质不打折",
+];
+const TAGS_OPTIONS = ["新品", "热销", "限定", "推荐", "特惠", "清仓", "爆款", "甄选", "人气", "独家"];
+const ORIGINS = ["广东深圳", "广东广州", "浙江杭州", "浙江义乌", "江苏苏州", "江苏南京", "北京", "上海", "福建厦门", "山东青岛", "四川成都", "湖北武汉", "安徽合肥", "湖南长沙", "河南郑州"];
+const SPECS_TEMPLATES = {
+  clothing: [
+    { key: "面料", options: ["100%纯棉", "95%棉+5%氨纶", "聚酯纤维", "混纺面料", "真丝", "亚麻"] },
+    { key: "尺码", options: ["S/M/L/XL", "M/L/XL/XXL", "均码", "160/84A", "165/88A", "170/92A"] },
+    { key: "颜色", options: ["黑色/白色/灰色", "多色可选", "经典三色", "深色系", "浅色系"] },
+    { key: "季节", options: ["四季通用", "春夏", "秋冬", "夏季", "冬季"] },
+    { key: "适用人群", options: ["男女通用", "男士", "女士"] },
+  ],
+  electronics: [
+    { key: "型号", options: ["Pro版", "标准版", "Max版", "Lite版", "2026款"] },
+    { key: "材质", options: ["铝合金", "ABS塑料", "不锈钢", "航空铝", "PC+ABS"] },
+    { key: "颜色", options: ["深空灰", "银色", "黑色", "白色", "蓝色"] },
+    { key: "保修", options: ["一年质保", "两年质保"] },
+    { key: "接口", options: ["Type-C", "USB-A", "Lightning", "无线", "蓝牙5.3"] },
+  ],
+  home: [
+    { key: "材质", options: ["环保PP", "不锈钢", "陶瓷", "玻璃", "实木", "竹制", "硅胶"] },
+    { key: "尺寸", options: ["标准款", "大号", "小号", "30×20cm", "40×30cm", "20×15cm"] },
+    { key: "颜色", options: ["白色", "米色", "灰色", "北欧蓝", "莫兰迪色", "原木色"] },
+    { key: "适用场景", options: ["居家", "办公", "户外", "厨房", "浴室"] },
+  ],
+  food: [
+    { key: "净含量", options: ["250g", "500g", "1kg", "200g", "100g", "50g×20"] },
+    { key: "保质期", options: ["12个月", "18个月", "24个月", "6个月"] },
+    { key: "产地", options: ["国产", "进口", "云南", "福建", "浙江"] },
+    { key: "储存方式", options: ["阴凉干燥处", "冷藏保存", "常温保存"] },
+  ],
+  books: [
+    { key: "出版社", options: ["人民邮电出版社", "机械工业出版社", "中信出版社", "商务印书馆", "清华大学出版社", "电子工业出版社"] },
+    { key: "开本", options: ["16开", "32开"] },
+    { key: "页数", options: ["200页", "300页", "400页", "500页", "600页"] },
+  ],
+  sports: [
+    { key: "材质", options: ["TPE", "NBR", "橡胶", "涤纶", "锦纶", "环保材料"] },
+    { key: "重量", options: ["0.5kg", "1kg", "2kg", "0.3kg", "轻量设计"] },
+    { key: "颜色", options: ["黑色", "蓝色", "灰色", "红色", "绿色"] },
+    { key: "适用场景", options: ["跑步", "瑜伽", "健身", "户外", "综合训练"] },
+  ],
+  beauty: [
+    { key: "规格", options: ["30ml", "50ml", "100ml", "120g", "150ml", "200ml"] },
+    { key: "适合肤质", options: ["所有肤质", "干性", "油性", "混合型", "敏感肌"] },
+    { key: "保质期", options: ["2年", "3年"] },
+    { key: "产地", options: ["国产", "日本", "韩国", "法国", "美国"] },
+  ],
+  baby: [
+    { key: "适用年龄", options: ["0-3个月", "3-6个月", "6-12个月", "1-3岁", "3-6岁"] },
+    { key: "材质", options: ["食品级硅胶", "环保ABS", "纯棉", "抗菌面料", "天然竹纤维"] },
+    { key: "安全标准", options: ["国家3C认证", "CE认证"] },
+    { key: "颜色", options: ["粉色", "蓝色", "米色", "彩色", "绿色"] },
+  ],
+};
+
+/** 生成某分类的随机规格参数 */
+function generateSpecs(catSlug) {
+  const templates = [...(SPECS_TEMPLATES[catSlug] || SPECS_TEMPLATES.home)];
+  const count = randInt(2, Math.min(5, templates.length));
+  const picked = [];
+  const used = new Set();
+  for (let i = 0; i < count; i++) {
+    let t;
+    do { t = pick(templates); } while (used.has(t.key));
+    used.add(t.key);
+    picked.push({ key: t.key, value: pick(t.options) });
+  }
+  return picked;
+}
+
+/** 生成随机图片列表（从已有商品图片中选取，保证本地路径存在） */
+function generateImages(index, count) {
+  // 主图固定为当前商品图片
+  const urls = [`/uploads/products/product_${index + 1}.jpg`];
+  // 额外图片从其他商品图片中随机选
+  for (let i = 1; i < count; i++) {
+    const otherIdx = randInt(1, 235);
+    urls.push(`/uploads/products/product_${otherIdx}.jpg`);
+  }
+  return urls;
+}
+
+/** 从数组随机取 0~N 项 */
+function pickRandom(arr, max) {
+  const n = randInt(0, Math.min(max, arr.length));
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+}
+
 // ==================== 商品名称生成工厂 ====================
 const BRANDS = ["优品", "极客", "北欧时光", "自然之选", "悦享", "智造", "简约派", "轻奢", "田园风", "酷玩"];
 const ADJECTIVES = {
@@ -194,6 +299,16 @@ async function main() {
       : Math.random() > 0.05;
     // 创建时间分布在过去 6 个月（编号越早的商品创建时间越早）
     const createdAt = new Date(MONTHS_AGO_6.getTime() + (i / productDefs.length) * (NOW.getTime() - MONTHS_AGO_6.getTime()) + (Math.random() - 0.5) * 7 * 86400000);
+    // 新字段数据
+    const brand = pick(BRAND_NAMES);
+    const subtitle = pick(SUBTITLES);
+    const images = JSON.stringify(generateImages(i, randInt(1, 4)));
+    const specs = JSON.stringify(generateSpecs(p.cat));
+    const tags = JSON.stringify(pickRandom(TAGS_OPTIONS, 3));
+    const videoUrl = ""; // 暂无本地视频文件
+    const origin = pick(ORIGINS);
+    const weight = Math.random() < 0.7 ? parseFloat((0.1 + Math.random() * 9.9).toFixed(2)) : null;
+
     const product = await prisma.product.create({
       data: {
         name: p.name,
@@ -203,6 +318,14 @@ async function main() {
         imageUrl: `/uploads/products/product_${i + 1}.jpg`,
         isPublished: published,
         category: { connect: { slug: p.cat } },
+        brand,
+        subtitle,
+        images,
+        specs,
+        tags,
+        videoUrl,
+        origin,
+        weight,
         createdAt,
         updatedAt: randomDate(createdAt, NOW),
       },

@@ -62,6 +62,10 @@ export default function ProductCard({ product }: ProductCardProps) {
       <div className="p-3">
         <div className="flex items-center justify-between">
           <span className="inline-block rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">{product.category.name}</span>
+          {/* 品牌 */}
+          {product.brand && (
+            <span className="text-[10px] text-gray-400">{product.brand}</span>
+          )}
           {/* 销量 */}
           {product.salesCount !== undefined && (
             <span className="text-[10px] text-gray-400">已售 {product.salesCount}</span>
