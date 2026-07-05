@@ -2,12 +2,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { getAuthSecret } from "@/lib/utils";
 
 // 使用与 next-auth 相同的 JWT 编码方式
 async function encode(token: Record<string, unknown>): Promise<string> {
   const { encode: jwtEncode } = await import("next-auth/jwt");
-  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET!;
-  return jwtEncode({ token, secret, salt: "admin-token" });
+  return jwtEncode({ token, secret: getAuthSecret(), salt: "admin-token" });
 }
 
 export async function POST(request: NextRequest) {

@@ -47,6 +47,18 @@ function safeJsonParse<T>(val: string | undefined | null, fallback: T): T {
   try { return JSON.parse(val); } catch { return fallback; }
 }
 
+/** 获取 JWT 签名密钥，校验不为空且非默认值 */
+export function getAuthSecret(): string {
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+  if (!secret) {
+    throw new Error("AUTH_SECRET 环境变量未设置");
+  }
+  if (secret === "your-secret-key-change-in-production") {
+    throw new Error("AUTH_SECRET 仍为默认值，请设置为安全的随机字符串");
+  }
+  return secret;
+}
+
 /** 验证管理员身份（admin-token JWT） */
 export async function verifyAdmin() {
   try {
@@ -55,8 +67,7 @@ export async function verifyAdmin() {
     const token = cookieStore.get("admin-token")?.value;
     if (!token) return null;
     const { decode } = await import("next-auth/jwt");
-    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET!;
-    const payload = await decode({ token, secret, salt: "admin-token" });
+    const payload = await decode({ token, secret: getAuthSecret(), salt: "admin-token" });
     if (!payload?.id) return null;
     const { prisma } = await import("./prisma");
     return await prisma.adminUser.findUnique({ where: { id: parseInt(payload.id as string, 10) } });
