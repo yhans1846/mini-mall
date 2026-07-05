@@ -1,17 +1,10 @@
 // src/app/api/admin/orders/route.ts — 后台订单列表（支持筛选 + 分页）
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-async function checkAdmin() {
-  const session = await auth();
-  if (!session?.user?.id) return false;
-  const user = await prisma.adminUser.findUnique({ where: { id: parseInt(session.user.id as string, 10) } });
-  return !!user;
-}
+import { verifyAdmin } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
-  if (!(await checkAdmin())) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
 

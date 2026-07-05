@@ -44,7 +44,17 @@ export default function CheckoutPage() {
     );
   }
 
-  const originalTotal = (items || []).reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  // 原价总价（未含任何优惠）
+  const listTotal = (items || []).reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  // 秒杀优惠金额
+  const flashSavings = (items || []).reduce((sum, item) => {
+    if (item.product.flashSale) {
+      return sum + (item.product.price - item.product.flashSale.flashPrice) * item.quantity;
+    }
+    return sum;
+  }, 0);
+  // 应用秒杀后的总价（作为会员折扣基数）
+  const originalTotal = listTotal - flashSavings;
 
   if (!items || items.length === 0) {
     return (
@@ -150,10 +160,17 @@ export default function CheckoutPage() {
       <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold text-gray-800">金额明细</h2>
         <div className="space-y-2 text-sm">
-          <div className="flex justify-between"><span className="text-gray-500">原价</span><span className="text-gray-800">{formatPrice(originalTotal)}</span></div>
+          <div className="flex justify-between"><span className="text-gray-500">商品原价</span><span className="text-gray-800">{formatPrice(listTotal)}</span></div>
+          {flashSavings > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">秒杀优惠</span>
+              <span className="text-orange-600 font-medium">-{formatPrice(flashSavings)}</span>
+            </div>
+          )}
+          <div className="flex justify-between"><span className="text-gray-500">小计</span><span className="text-gray-800">{formatPrice(originalTotal)}</span></div>
           {discountAmount > 0 && (
             <div className="flex justify-between">
-              <span className="text-gray-500">会员折扣（{tier.name} {(1 - discountRate) * 100}折）</span>
+              <span className="text-gray-500">会员折扣（{tier.name} {((1 - discountRate) * 100).toFixed(1)}折）</span>
               <span className="text-green-600 font-medium">-{formatPrice(discountAmount)}</span>
             </div>
           )}

@@ -1,23 +1,14 @@
 // src/app/api/admin/flash-sales/[id]/route.ts — 秒杀活动详情/编辑/删除
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-async function checkAdmin() {
-  const session = await auth();
-  if (!session?.user?.id) return false;
-  const user = await prisma.adminUser.findUnique({
-    where: { id: parseInt(session.user.id as string, 10) },
-  });
-  return !!user;
-}
+import { verifyAdmin } from "@/lib/utils";
 
 interface Params {
   params: Promise<{ id: string }>;
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
-  if (!(await checkAdmin())) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
 
@@ -57,7 +48,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
-  if (!(await checkAdmin())) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
 

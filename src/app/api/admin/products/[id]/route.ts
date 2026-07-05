@@ -1,21 +1,13 @@
 // src/app/api/admin/products/[id]/route.ts — 获取/更新/删除商品
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { transformProduct } from "@/lib/utils";
+import { transformProduct, verifyAdmin } from "@/lib/utils";
 
 interface Params { params: Promise<{ id: string }> }
 
-async function checkAdmin() {
-  const session = await auth();
-  if (!session?.user?.id) return false;
-  const user = await prisma.adminUser.findUnique({ where: { id: parseInt(session.user.id as string, 10) } });
-  return !!user;
-}
-
 /** 获取商品详情（含所有字段） */
 export async function GET(_request: NextRequest, { params }: Params) {
-  if (!(await checkAdmin())) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
   const { id } = await params;
@@ -26,7 +18,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
 /** 更新商品 */
 export async function PATCH(request: NextRequest, { params }: Params) {
-  if (!(await checkAdmin())) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
 
@@ -57,7 +49,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
 /** 删除商品 */
 export async function DELETE(_request: NextRequest, { params }: Params) {
-  if (!(await checkAdmin())) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
 

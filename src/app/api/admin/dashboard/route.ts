@@ -1,13 +1,10 @@
 // src/app/api/admin/dashboard/route.ts — 仪表盘统计数据（合并查询优化）
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { verifyAdmin } from "@/lib/utils";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "未登录" }, { status: 401 });
-
-  const user = await prisma.adminUser.findUnique({ where: { id: parseInt(session.user.id as string, 10) } });
+  const user = await verifyAdmin();
   if (!user) return NextResponse.json({ error: "无权限" }, { status: 403 });
 
   // 时间边界

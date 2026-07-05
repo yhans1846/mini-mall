@@ -28,7 +28,7 @@ interface DashboardData {
   monthlyDailyRevenue: { date: string; amount: number }[];
 }
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = (url: string) => fetch(url).then(async (r) => { if (!r.ok) throw new Error("加载失败"); return r.json(); });
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "待付款", PAID: "已支付", SHIPPED: "已发货", COMPLETED: "已完成", CANCELLED: "已取消",
@@ -85,12 +85,12 @@ export default function AdminDashboard() {
         <>
           {/* 顶部统计卡片 */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
-            <StatCard icon={<IconProduct className="h-6 w-6" />} label="商品总数" value={data.products} color="#409eff" />
-            <StatCard icon={<IconOrder className="h-6 w-6" />} label="订单总数" value={data.orders} color="#13ce66" />
-            <StatCard icon={<IconMoney className="h-6 w-6" />} label="总销售额" value={`¥${data.revenue.toFixed(2)}`} color="#ffba00" />
-            <StatCard icon={<IconUser className="h-6 w-6" />} label="用户总数" value={data.users} color="#409eff" />
-            <StatCard icon={<IconClock className="h-6 w-6" />} label="待处理订单" value={data.pendingOrders} color="#ff4949" />
-            <StatCard icon={<IconTrending className="h-6 w-6" />} label="本月销售额" value={`¥${data.monthRevenue.toFixed(2)}`} color="#13ce66" />
+            <StatCard icon={<IconProduct className="h-6 w-6" />} label="商品总数" value={data?.products ?? 0} color="#409eff" />
+            <StatCard icon={<IconOrder className="h-6 w-6" />} label="订单总数" value={data?.orders ?? 0} color="#13ce66" />
+            <StatCard icon={<IconMoney className="h-6 w-6" />} label="总销售额" value={`¥${(data?.revenue ?? 0).toFixed(2)}`} color="#ffba00" />
+            <StatCard icon={<IconUser className="h-6 w-6" />} label="用户总数" value={data?.users ?? 0} color="#409eff" />
+            <StatCard icon={<IconClock className="h-6 w-6" />} label="待处理订单" value={data?.pendingOrders ?? 0} color="#ff4949" />
+            <StatCard icon={<IconTrending className="h-6 w-6" />} label="本月销售额" value={`¥${(data?.monthRevenue ?? 0).toFixed(2)}`} color="#13ce66" />
           </div>
 
           {/* 今日概览 */}
@@ -110,7 +110,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="text-xs text-gray-400">今日收入</p>
-                <p className="text-lg font-bold text-gray-800">¥{data.todayRevenue.toFixed(2)}</p>
+                <p className="text-lg font-bold text-gray-800">¥{(data?.todayRevenue ?? 0).toFixed(2)}</p>
               </div>
             </div>
             <div className="admin-card flex items-center gap-3 p-4">
@@ -119,7 +119,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="text-xs text-gray-400">本月收入</p>
-                <p className="text-lg font-bold text-gray-800">¥{data.monthRevenue.toFixed(2)}</p>
+                <p className="text-lg font-bold text-gray-800">¥{(data?.monthRevenue ?? 0).toFixed(2)}</p>
               </div>
             </div>
             <div className="admin-card flex items-center gap-3 p-4">

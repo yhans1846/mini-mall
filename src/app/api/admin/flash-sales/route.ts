@@ -1,19 +1,10 @@
 // src/app/api/admin/flash-sales/route.ts — 后台秒杀活动管理（分页 + 搜索 + 状态筛选）
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-async function checkAdmin() {
-  const session = await auth();
-  if (!session?.user?.id) return false;
-  const user = await prisma.adminUser.findUnique({
-    where: { id: parseInt(session.user.id as string, 10) },
-  });
-  return !!user;
-}
+import { verifyAdmin } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
-  if (!(await checkAdmin())) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
 
@@ -73,7 +64,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!(await checkAdmin())) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
 

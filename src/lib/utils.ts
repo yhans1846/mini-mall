@@ -46,3 +46,21 @@ function safeJsonParse<T>(val: string | undefined | null, fallback: T): T {
   if (!val) return fallback;
   try { return JSON.parse(val); } catch { return fallback; }
 }
+
+/** 验证管理员身份（admin-token JWT） */
+export async function verifyAdmin() {
+  try {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const token = cookieStore.get("admin-token")?.value;
+    if (!token) return null;
+    const { decode } = await import("next-auth/jwt");
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET!;
+    const payload = await decode({ token, secret, salt: "admin-token" });
+    if (!payload?.id) return null;
+    const { prisma } = await import("./prisma");
+    return await prisma.adminUser.findUnique({ where: { id: parseInt(payload.id as string, 10) } });
+  } catch {
+    return null;
+  }
+}

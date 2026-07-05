@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { attachFlashSales } from "@/lib/flash-sale";
 
 /** 获取当前用户的购物车 */
 export async function GET() {
@@ -22,7 +23,15 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(items);
+  // 为购物车中的每个商品附加秒杀信息
+  const products = items.map((item) => item.product);
+  const productsWithFlash = await attachFlashSales(products);
+  const itemsWithFlash = items.map((item, idx) => ({
+    ...item,
+    product: productsWithFlash[idx],
+  }));
+
+  return NextResponse.json(itemsWithFlash);
 }
 
 /** 添加到购物车 */

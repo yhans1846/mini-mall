@@ -1,7 +1,7 @@
 // src/app/api/admin/orders/[id]/route.ts — 后台订单状态变更
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { verifyAdmin } from "@/lib/utils";
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -13,16 +13,9 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   CANCELLED: [],
 };
 
-async function checkAdmin() {
-  const session = await auth();
-  if (!session?.user?.id) return false;
-  const user = await prisma.adminUser.findUnique({ where: { id: parseInt(session.user.id as string, 10) } });
-  return !!user;
-}
-
 /** 获取订单详情（管理员视角，不校验归属） */
 export async function GET(_request: NextRequest, { params }: Params) {
-  if (!(await checkAdmin())) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
 
@@ -52,7 +45,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
 /** 修改订单状态 */
 export async function PATCH(request: NextRequest, { params }: Params) {
-  if (!(await checkAdmin())) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
 

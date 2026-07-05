@@ -1,20 +1,13 @@
 // src/app/api/admin/categories/[id]/route.ts — 更新/删除分类
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { verifyAdmin } from "@/lib/utils";
 
 interface Params { params: Promise<{ id: string }> }
 
-async function checkAdmin() {
-  const session = await auth();
-  if (!session?.user?.id) return false;
-  const user = await prisma.adminUser.findUnique({ where: { id: parseInt(session.user.id as string, 10) } });
-  return !!user;
-}
-
 /** 更新分类 */
 export async function PATCH(request: NextRequest, { params }: Params) {
-  if (!(await checkAdmin())) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
 
@@ -35,7 +28,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
 /** 删除分类 */
 export async function DELETE(_request: NextRequest, { params }: Params) {
-  if (!(await checkAdmin())) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
 

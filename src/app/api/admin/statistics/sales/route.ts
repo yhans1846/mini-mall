@@ -1,12 +1,10 @@
 // src/app/api/admin/statistics/sales/route.ts — 销售统计 API
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { verifyAdmin } from "@/lib/utils";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "未登录" }, { status: 401 });
-  const user = await prisma.adminUser.findUnique({ where: { id: parseInt(session.user.id as string, 10) } });
+  const user = await verifyAdmin();
   if (!user) return NextResponse.json({ error: "无权限" }, { status: 403 });
 
   const now = new Date();

@@ -67,7 +67,17 @@ export default function CartPage() {
     finally { setLoadingId(null); }
   };
 
-  const originalTotal = (items || []).reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  // 原价总价（未含秒杀/会员优惠）
+  const listTotal = (items || []).reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  // 秒杀优惠金额
+  const flashSavings = (items || []).reduce((sum, item) => {
+    if (item.product.flashSale) {
+      return sum + (item.product.price - item.product.flashSale.flashPrice) * item.quantity;
+    }
+    return sum;
+  }, 0);
+  // 应用秒杀后的总价（作为会员折扣的基数）
+  const originalTotal = listTotal - flashSavings;
 
   // 会员折扣预估
   const level = member?.membershipLevel ?? 0;
@@ -108,7 +118,10 @@ export default function CartPage() {
       <div className="space-y-4">
         {items.map((item) => (
           <div key={item.id} className={`flex gap-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-opacity ${loadingId === item.id ? "opacity-50" : ""}`}>
-            <Link href={`/products/${item.productId}`} className="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-gray-50">
+            <Link href={`/products/${item.productId}`} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-gray-50">
+              {item.product.flashSale && (
+                <span className="absolute left-1 top-1 z-10 rounded-md bg-gradient-to-r from-red-500 to-orange-500 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm">秒杀</span>
+              )}
               {item.product.imageUrl ? (
                 <img src={item.product.imageUrl} alt={item.product.name} className="h-full w-full object-cover" />
               ) : (
@@ -120,14 +133,23 @@ export default function CartPage() {
                 <Link href={`/products/${item.productId}`} className="text-sm font-medium text-gray-900 hover:text-blue-600">{item.product.name}</Link>
                 <button onClick={() => removeItem(item.id)} disabled={loadingId === item.id} className="text-sm text-gray-400 hover:text-red-500 disabled:text-gray-300">删除</button>
               </div>
-              <p className="text-sm font-medium text-red-500">{formatPrice(item.product.price)}</p>
+              <div className="flex items-center gap-2">
+                {item.product.flashSale ? (
+                  <>
+                    <p className="text-sm font-medium text-red-500">{formatPrice(item.product.flashSale.flashPrice)}</p>
+                    <p className="text-xs text-gray-400 line-through">{formatPrice(item.product.price)}</p>
+                  </>
+                ) : (
+                  <p className="text-sm font-medium text-red-500">{formatPrice(item.product.price)}</p>
+                )}
+              </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center rounded-lg border border-gray-200">
                   <button onClick={() => updateQuantity(item.id, item.quantity - 1)} disabled={item.quantity <= 1 || loadingId === item.id} className="px-3 py-1 text-gray-600 hover:bg-gray-50 disabled:text-gray-300">−</button>
                   <span className="min-w-[2rem] text-center text-sm">{item.quantity}</span>
                   <button onClick={() => updateQuantity(item.id, item.quantity + 1)} disabled={loadingId === item.id} className="px-3 py-1 text-gray-600 hover:bg-gray-50 disabled:text-gray-300">+</button>
                 </div>
-                <p className="text-sm font-bold text-red-500">{formatPrice(item.product.price * item.quantity)}</p>
+                <p className="text-sm font-bold text-red-500">{formatPrice((item.product.flashSale ? item.product.flashSale.flashPrice : item.product.price) * item.quantity)}</p>
               </div>
             </div>
           </div>
@@ -137,10 +159,17 @@ export default function CartPage() {
       {/* 底部结算栏 — 含会员折扣 */}
       <div className="mt-6 rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
         <div className="space-y-2 text-sm">
+          <div className="flex justify-between"><span className="text-gray-500">商品原价</span><span className="text-gray-800">{formatPrice(listTotal)}</span></div>
+          {flashSavings > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">秒杀优惠</span>
+              <span className="text-orange-600">-{formatPrice(flashSavings)}</span>
+            </div>
+          )}
           <div className="flex justify-between"><span className="text-gray-500">商品合计</span><span className="text-gray-800">{formatPrice(originalTotal)}</span></div>
           {discountAmount > 0 && (
             <div className="flex justify-between">
-              <span className="text-gray-500">会员折扣（{tier.name} {(1 - discountRate) * 100}折）</span>
+              <span className="text-gray-500">会员折扣（{tier.name} {((1 - discountRate) * 100).toFixed(1)}折）</span>
               <span className="text-green-600">-{formatPrice(discountAmount)}</span>
             </div>
           )}

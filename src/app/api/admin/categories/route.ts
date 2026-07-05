@@ -1,18 +1,11 @@
 // src/app/api/admin/categories/route.ts — 后台分类管理 API
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-async function checkAdmin() {
-  const session = await auth();
-  if (!session?.user?.id) return false;
-  const user = await prisma.adminUser.findUnique({ where: { id: parseInt(session.user.id as string, 10) } });
-  return !!user;
-}
+import { verifyAdmin } from "@/lib/utils";
 
 /** 获取所有分类 */
 export async function GET() {
-  if (!(await checkAdmin())) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
 
@@ -26,7 +19,7 @@ export async function GET() {
 
 /** 创建分类 */
 export async function POST(request: NextRequest) {
-  if (!(await checkAdmin())) {
+  if (!(await verifyAdmin())) {
     return NextResponse.json({ error: "无权限" }, { status: 403 });
   }
 
