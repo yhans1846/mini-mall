@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { useSidebar } from "./SidebarContext";
 import {
   IconDashboard, IconProduct, IconFlash,
-  IconOrder, IconCategory, IconUser, IconHome, IconTrending,
+  IconOrder, IconCategory, IconUser, IconTrending,
 } from "./icons";
 
 interface NavItem {
@@ -178,18 +178,6 @@ export default function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-2 py-4">
         {NAV_ITEMS.map(renderNavItem)}
       </nav>
-
-      {/* 底部：返回前台 */}
-      <div className="border-t p-3" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-        <Link
-          href="/"
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-[#bfcbd9] transition-all duration-200 hover:translate-x-0.5 hover:text-white"
-          title="返回前台"
-        >
-          <IconHome className="h-4 w-4" />
-          {!collapsed && <span>返回前台</span>}
-        </Link>
-      </div>
     </aside>
   );
 }
