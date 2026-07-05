@@ -152,6 +152,8 @@ npm run db:push
 
 # 导入种子数据（含测试用户、秒杀商品）
 npm run db:seed
+
+# 修改.env.example 文件名称为 .env 并修改AUTH_SECRET的值
 ```
 
 ### 启动开发服务器
