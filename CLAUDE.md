@@ -47,7 +47,7 @@ src/
 ├── components/
 │   ├── layout/             # Header（毛玻璃+购物车角标+搜索）/ Footer
 │   ├── home/               # 首页：HeroCarousel / CategoryNav / FlashSale / HotRanking / BrandStory
-│   ├── product/            # 商品卡片（hover动效）、网格（stagger动画）、搜索（防抖）
+│   ├── product/            # 商品卡片（hover动效+品牌）、网格（stagger动画）、搜索（防抖）
 │   ├── shared/             # EmptyState / ProductImage 前台共享组件
 │   ├── admin/              # Sidebar / Navbar / Modal / StatCard / StatusBadge / Pagination / Toaster / ConfirmDialog / TableCheckbox
 │   │   └── charts/         # RevenueChart / MonthlyChart / StatusPieChart（Recharts）
@@ -56,7 +56,7 @@ src/
 │   ├── prisma.ts           # Prisma 客户端单例
 │   ├── auth.ts             # next-auth 配置
 │   ├── validations.ts      # zod 校验规则
-│   ├── utils.ts            # 通用工具（等级配置/折扣计算/价格格式化）
+│   ├── utils.ts            # 通用工具（等级配置/折扣计算/价格格式化/transformProduct JSON解析）
 │   ├── flash-sale.ts       # 秒杀信息附加工具
 │   ├── swr-config.ts       # SWR 全局配置（30s 防重复/关失焦刷新/保持旧数据）
 │   └── export.ts           # CSV 导出工具（BOM 头支持中文）
@@ -72,7 +72,7 @@ src/
 
 ## 数据模型
 
-7 个模型：User / Address / Category / Product / CartItem / Order / OrderItem
+9 个模型：MallUser / AdminUser / Address / Category / Product / FlashSale / CartItem / Order / OrderItem
 
 详见 [prisma/schema.prisma](prisma/schema.prisma)
 
@@ -82,6 +82,7 @@ src/
 - **购物车去重**：`@@unique([userId, productId])` 同一用户同一商品只保留一条
 - **软发布**：`Product.isPublished` 控制前台可见性
 - **秒杀商品**：`Product.isFlashSale` + `originalPrice` 标价，首页限时秒杀区展示
+- **商品扩展字段**：Product 模型含 brand/subtitle/images(JSON)/specs(JSON)/tags(JSON)/videoUrl/origin/weight，API 返回时通过 `transformProduct()` 自动解析 JSON 字段
 - **角色**：`User.role` 区分 USER / ADMIN，用于路由守卫和 API 鉴权
 - **会员折扣**：`Order.originalAmount`（原价） + `discountRate`（折扣率快照） + `totalAmount`（折后实付）
 - **地址管理**：`Address` 独立模型，支持多地址 + 默认地址
@@ -109,7 +110,7 @@ src/
 |------|------|
 | `/` | 首页（轮播 / 分类入口 / 限时秒杀 / 热销排行 / 品牌故事） |
 | `/products` | 商品列表（搜索、分类筛选、排序、分页） |
-| `/products/[id]` | 商品详情（加购/立即购买/秒杀倒计时） |
+| `/products/[id]` | 商品详情（图片轮播/品牌/规格参数/标签/产地/重量/视频/加购/秒杀倒计时） |
 | `/cart` | 购物车（数量修改、删除、会员折扣预估、去结算） |
 | `/orders/checkout` | 结算页（地址填写、会员折扣明细、下单） |
 | `/orders` | 我的订单列表（状态筛选标签） |
@@ -181,6 +182,7 @@ npm run postinstall # 自动 prisma generate（安装依赖后）
 | 分类入口 | `CategoryNav` | 渐变色图标卡片+悬停抬升效果 |
 | 限时秒杀 | `FlashSale` | 秒杀网格（含加载骨架屏/错误重试/倒计时） |
 | 热销排行 | `HotRanking` | 按销量 Top 8（聚合 OrderItem + 排名徽章） |
+| 新品上市 | `NewArrivals` | 按创建时间取前 8 件新品，带 hover 动效 |
 | 品牌故事 | `BrandStory` | 品牌介绍区块 |
 
 ## 实现顺序
@@ -201,6 +203,7 @@ npm run postinstall # 自动 prisma generate（安装依赖后）
 14. ✅ 后台视觉升级（Recharts图表/渐变侧边栏/统计卡片/状态标签）
 15. ✅ 交互增强（Toast通知/全局快捷键/搜索防抖/批量操作/订单筛选）
 16. ✅ 性能优化（SWR全局缓存/仪表盘查询合并/CSV导出/商品卡片stagger动画）
+17. ✅ 商品扩展字段（品牌/副标题/多图/规格参数/标签/视频/产地/重量 + 详情页轮播重设计）
 
 <!-- superpowers-zh:begin (do not edit between these markers) -->
 # Superpowers-ZH 中文增强版
