@@ -8,7 +8,7 @@ import useSWR from "swr";
 import { toast } from "sonner";
 import Link from "next/link";
 import EmptyState from "@/components/shared/EmptyState";
-import { formatPrice, getDiscountRate, MEMBERSHIP_TIERS } from "@/lib/utils";
+import { formatPrice, calcCartSummary } from "@/lib/utils";
 import type { Product, Category } from "@/types";
 
 interface CartItemData { id: number; quantity: number; productId: number; product: Product & { category: Category } }
@@ -44,17 +44,9 @@ export default function CheckoutPage() {
     );
   }
 
-  // 原价总价（未含任何优惠）
-  const listTotal = (items || []).reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  // 秒杀优惠金额
-  const flashSavings = (items || []).reduce((sum, item) => {
-    if (item.product.flashSale) {
-      return sum + (item.product.price - item.product.flashSale.flashPrice) * item.quantity;
-    }
-    return sum;
-  }, 0);
-  // 应用秒杀后的总价（作为会员折扣基数）
-  const originalTotal = listTotal - flashSavings;
+  // 金额汇总（含秒杀优惠和会员折扣）
+  const { listTotal, flashSavings, originalTotal, discountRate, estimatedTotal, discountAmount, tier } =
+    calcCartSummary(items || [], member?.membershipLevel ?? 0);
 
   if (!items || items.length === 0) {
     return (
@@ -64,13 +56,6 @@ export default function CheckoutPage() {
       </div>
     );
   }
-
-  // 计算会员折扣
-  const level = member?.membershipLevel ?? 0;
-  const tier = MEMBERSHIP_TIERS[level];
-  const discountRate = getDiscountRate(level);
-  const estimatedTotal = Math.round(originalTotal * discountRate * 100) / 100;
-  const discountAmount = Math.round((originalTotal - estimatedTotal) * 100) / 100;
 
   function selectAddress(addr: AddressData) {
     setSelectedAddrId(addr.id);
@@ -110,7 +95,7 @@ export default function CheckoutPage() {
               )}
             </Link>
             <div className="flex-1"><p className="text-sm text-gray-900">{item.product.name}</p><p className="mt-0.5 text-xs text-gray-400">x{item.quantity}</p></div>
-            <p className="text-sm font-medium text-red-500">{formatPrice(item.product.price * item.quantity)}</p>
+            <p className="text-sm font-medium text-red-500">{formatPrice((item.product.flashSale ? item.product.flashSale.flashPrice : item.product.price) * item.quantity)}</p>
           </div>
         ))}
       </div>
@@ -170,7 +155,7 @@ export default function CheckoutPage() {
           <div className="flex justify-between"><span className="text-gray-500">小计</span><span className="text-gray-800">{formatPrice(originalTotal)}</span></div>
           {discountAmount > 0 && (
             <div className="flex justify-between">
-              <span className="text-gray-500">会员折扣（{tier.name} {((1 - discountRate) * 100).toFixed(1)}折）</span>
+              <span className="text-gray-500">会员折扣（{tier.name} {(discountRate * 10).toFixed(1)}折）</span>
               <span className="text-green-600 font-medium">-{formatPrice(discountAmount)}</span>
             </div>
           )}

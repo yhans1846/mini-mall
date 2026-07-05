@@ -59,6 +59,30 @@ export function getAuthSecret(): string {
   return secret;
 }
 
+/**
+ * 计算购物车/结算页的价格汇总
+ * 含原价、秒杀优惠、会员折扣后金额
+ */
+export function calcCartSummary(
+  items: { product: { price: number; flashSale?: { flashPrice: number } | null }; quantity: number }[],
+  membershipLevel: number,
+) {
+  const listTotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const flashSavings = items.reduce((sum, item) => {
+    if (item.product.flashSale) {
+      return sum + (item.product.price - item.product.flashSale.flashPrice) * item.quantity;
+    }
+    return sum;
+  }, 0);
+  const originalTotal = listTotal - flashSavings;
+  const discountRate = getDiscountRate(membershipLevel);
+  const estimatedTotal = Math.round(originalTotal * discountRate * 100) / 100;
+  const discountAmount = Math.round((originalTotal - estimatedTotal) * 100) / 100;
+  const tier = MEMBERSHIP_TIERS[membershipLevel] ?? MEMBERSHIP_TIERS[0];
+
+  return { listTotal, flashSavings, originalTotal, discountRate, estimatedTotal, discountAmount, tier };
+}
+
 /** 验证管理员身份（admin-token JWT） */
 export async function verifyAdmin() {
   try {
@@ -71,7 +95,8 @@ export async function verifyAdmin() {
     if (!payload?.id) return null;
     const { prisma } = await import("./prisma");
     return await prisma.adminUser.findUnique({ where: { id: parseInt(payload.id as string, 10) } });
-  } catch {
+  } catch (err) {
+    console.error("verifyAdmin 错误:", err);
     return null;
   }
 }

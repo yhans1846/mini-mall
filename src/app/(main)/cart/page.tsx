@@ -8,7 +8,7 @@ import useSWR from "swr";
 import { toast } from "sonner";
 import Link from "next/link";
 import EmptyState from "@/components/shared/EmptyState";
-import { getDiscountRate, formatPrice, MEMBERSHIP_TIERS } from "@/lib/utils";
+import { formatPrice, calcCartSummary } from "@/lib/utils";
 import type { Product, Category } from "@/types";
 
 interface CartItemData {
@@ -67,24 +67,9 @@ export default function CartPage() {
     finally { setLoadingId(null); }
   };
 
-  // 原价总价（未含秒杀/会员优惠）
-  const listTotal = (items || []).reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  // 秒杀优惠金额
-  const flashSavings = (items || []).reduce((sum, item) => {
-    if (item.product.flashSale) {
-      return sum + (item.product.price - item.product.flashSale.flashPrice) * item.quantity;
-    }
-    return sum;
-  }, 0);
-  // 应用秒杀后的总价（作为会员折扣的基数）
-  const originalTotal = listTotal - flashSavings;
-
-  // 会员折扣预估
-  const level = member?.membershipLevel ?? 0;
-  const tier = MEMBERSHIP_TIERS[level];
-  const discountRate = getDiscountRate(level);
-  const estimatedTotal = Math.round(originalTotal * discountRate * 100) / 100;
-  const discountAmount = Math.round((originalTotal - estimatedTotal) * 100) / 100;
+  // 金额汇总（含秒杀优惠和会员折扣）
+  const { listTotal, flashSavings, originalTotal, discountRate, estimatedTotal, discountAmount, tier } =
+    calcCartSummary(items || [], member?.membershipLevel ?? 0);
 
   if (error) {
     return (
@@ -169,7 +154,7 @@ export default function CartPage() {
           <div className="flex justify-between"><span className="text-gray-500">商品合计</span><span className="text-gray-800">{formatPrice(originalTotal)}</span></div>
           {discountAmount > 0 && (
             <div className="flex justify-between">
-              <span className="text-gray-500">会员折扣（{tier.name} {((1 - discountRate) * 100).toFixed(1)}折）</span>
+              <span className="text-gray-500">会员折扣（{tier.name} {(discountRate * 10).toFixed(1)}折）</span>
               <span className="text-green-600">-{formatPrice(discountAmount)}</span>
             </div>
           )}

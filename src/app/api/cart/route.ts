@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { attachFlashSales } from "@/lib/flash-sale";
+import { transformProduct } from "@/lib/utils";
 
 /** 获取当前用户的购物车 */
 export async function GET() {
@@ -23,12 +24,12 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  // 为购物车中的每个商品附加秒杀信息
+  // 为购物车中的每个商品附加秒杀信息，并解析 JSON 字段
   const products = items.map((item) => item.product);
   const productsWithFlash = await attachFlashSales(products);
   const itemsWithFlash = items.map((item, idx) => ({
     ...item,
-    product: productsWithFlash[idx],
+    product: transformProduct(productsWithFlash[idx] as { images?: string; specs?: string; tags?: string }),
   }));
 
   return NextResponse.json(itemsWithFlash);
